@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geoportal - Da Serra Ambiental</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="app-container">
+        
+        <!-- Sidebar Button when Collapsed -->
+        <button id="sidebar-open-btn" class="hidden" title="Abrir Painel de Camadas">
+            <i class="fa-solid fa-bars"></i>
+            <span>Painel de Camadas</span>
+        </button>
+
+        <!-- Left Sidebar Interface -->
+        <aside id="sidebar">
+            
+            <!-- Sidebar Header -->
+            <div class="sidebar-header">
+                <div class="brand">
+                    <div class="brand-logo-wrapper">
+                        <img src="logo.png" alt="Da Serra Ambiental" class="brand-logo-img">
+                    </div>
+                    <span class="geoportal-pill">GEOPORTAL</span>
+                </div>
+                <button class="toggle-sidebar-btn" id="toggle-sidebar-btn" title="Recolher Painel">
+                    <i class="fa-solid fa-chevron-left"></i>
+                </button>
+            </div>
+
+            <!-- Global Search Box -->
+            <div class="search-container">
+                <div class="search-box">
+                    <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                    <input type="text" id="layer-search-input" class="search-input" placeholder="Buscar projetos ou municípios...">
+                    <button class="clear-search-btn" id="clear-search-btn" title="Limpar busca">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Global Toolbar Actions -->
+            <div class="toolbar-actions">
+                <button class="btn-tool" id="btn-select-all" title="Ativar todas as camadas de projetos">
+                    <i class="fa-solid fa-check-double"></i> Ativar Todos
+                </button>
+                <button class="btn-tool" id="btn-deselect-all" title="Desativar todas as camadas de projetos">
+                    <i class="fa-solid fa-square-minus"></i> Desativar
+                </button>
+                <button class="btn-tool" id="btn-fit-bounds" title="Ajustar zoom para abranger todos os projetos">
+                    <i class="fa-solid fa-expand"></i> Enquadrar
+                </button>
+            </div>
+
+            <!-- Sidebar Scrollable Content -->
+            <div class="sidebar-body">
+                
+                <!-- Section 1: Limites de Projetos (18 Layers) -->
+                <div class="accordion-section active" id="sec-projetos">
+                    <div class="accordion-header">
+                        <div class="accordion-title">
+                            <i class="fa-solid fa-vector-square"></i>
+                            <span>Limites de Projetos</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span class="accordion-badge" id="projetos-count">18</span>
+                            <i class="fa-solid fa-chevron-down accordion-chevron"></i>
+                        </div>
+                    </div>
+                    <div class="accordion-content">
+                        <div class="layer-list" id="projetos-layer-list">
+                            <!-- Project layer items injected dynamically via app.js -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 3: Outros Limites (Municípios & UGRHIs SP) -->
+                <div class="accordion-section active" id="sec-outros">
+                    <div class="accordion-header">
+                        <div class="accordion-title">
+                            <i class="fa-solid fa-draw-polygon"></i>
+                            <span>Outros Limites</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span class="accordion-badge" id="outros-count">2</span>
+                            <i class="fa-solid fa-chevron-down accordion-chevron"></i>
+                        </div>
+                    </div>
+                    <div class="accordion-content">
+                        <div class="layer-list" id="outros-layer-list">
+                            <!-- Outros Limites layers injected dynamically -->
+                        </div>
+                        
+                        <!-- Quick Jump to UGRHI (Bacia Hidrográfica) -->
+                        <div class="muni-search-box">
+                            <select id="ugrhi-select" class="muni-select">
+                                <option value="">-- Ir para UGRHI (Bacia Hidrográfica) --</option>
+                            </select>
+                        </div>
+
+                        <!-- Quick Jump to Municipality -->
+                        <div class="muni-search-box">
+                            <select id="muni-select" class="muni-select">
+                                <option value="">-- Ir para Município (SP) --</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Sidebar Footer / Statistics -->
+            <div class="sidebar-footer">
+                <div class="stats-item">
+                    <i class="fa-solid fa-eye" style="color: var(--accent-color);"></i>
+                    <span>Projetos Visíveis:</span>
+                    <strong id="visible-projects-count">18</strong>
+                </div>
+                <div class="stats-item">
+                    <i class="fa-solid fa-chart-area" style="color: var(--accent-color);"></i>
+                    <span id="total-area-display">0.00 ha</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Map View Container -->
+        <main id="map">
+            
+            <!-- Map Coordinates & Altitude Status Bar (Centered at Bottom) -->
+            <div class="map-status-bar">
+                <div class="status-section">
+                    <span>Lat:</span>
+                    <span class="status-value" id="status-lat">-23.55050</span>
+                </div>
+                <div class="status-section">
+                    <span>Lng:</span>
+                    <span class="status-value" id="status-lng">-46.63330</span>
+                </div>
+                <div class="status-section">
+                    <span>Alt:</span>
+                    <span class="status-value" id="status-alt">-- m</span>
+                </div>
+            </div>
+
+            <!-- Floating Right Base Map Selector (Centralizado no Lado Direito) -->
+            <div class="basemap-floating-right" id="basemap-floating-right">
+                <div class="basemap-floating-title">
+                    <i class="fa-solid fa-layer-group"></i> Camadas Base
+                </div>
+                <div class="basemap-floating-list">
+                    <div class="basemap-card active" data-basemap="google-satellite" title="Google Satélite">
+                        <div class="basemap-icon" style="background-image: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url('https://mt1.google.com/vt/lyrs=s&x=149&y=97&z=8');">
+                            <i class="fa-solid fa-satellite"></i>
+                        </div>
+                        <span class="basemap-label">Google Satélite</span>
+                    </div>
+                    <div class="basemap-card" data-basemap="google-maps" title="Google Maps">
+                        <div class="basemap-icon" style="background-image: linear-gradient(rgba(0,0,0,0.2), rgba(0,0,0,0.2)), url('https://mt1.google.com/vt/lyrs=m&x=149&y=97&z=8');">
+                            <i class="fa-solid fa-map"></i>
+                        </div>
+                        <span class="basemap-label">Google Maps</span>
+                    </div>
+                    <div class="basemap-card" data-basemap="google-hybrid" title="Google Híbrido">
+                        <div class="basemap-icon" style="background-image: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url('https://mt1.google.com/vt/lyrs=y&x=149&y=97&z=8');">
+                            <i class="fa-solid fa-globe"></i>
+                        </div>
+                        <span class="basemap-label">Google Híbrido</span>
+                    </div>
+                    <div class="basemap-card" data-basemap="osm" title="OpenStreetMap">
+                        <div class="basemap-icon" style="background: #e2e8f0; color: #334155;">
+                            <i class="fa-solid fa-map-location-dot"></i>
+                        </div>
+                        <span class="basemap-label">OpenStreetMap</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Floating Top-Right Tool Buttons -->
+            <div class="map-floating-tools">
+                <button class="floating-btn" id="btn-recenter" title="Centralizar nos Projetos">
+                    <i class="fa-solid fa-location-crosshairs"></i>
+                </button>
+                <button class="floating-btn" id="btn-fullscreen" title="Modo Tela Cheia">
+                    <i class="fa-solid fa-expand"></i>
+                </button>
+            </div>
+
+            <!-- Feature Info Floating Drawer/Panel -->
+            <div id="info-panel">
+                <div class="info-panel-header">
+                    <span id="info-panel-title">Detalhes do Elemento</span>
+                    <button class="close-panel-btn" id="close-info-panel-btn">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+                <div class="info-panel-body" id="info-panel-body">
+                    <p style="color: var(--text-muted);">Clique em um polígono no mapa para ver suas informações.</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    
+    <!-- Turf.js for spatial calculations -->
+    <script src="https://unpkg.com/@turf/turf@6.5.0/turf.min.js"></script>
+
+    <!-- Embedded GeoJSON Data Package -->
+    <script src="geojson_data.js"></script>
+
+    <!-- Custom Application Logic -->
+    <script src="app.js"></script>
+</body>
+</html>
