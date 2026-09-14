@@ -1,0 +1,17 @@
+# Logs
+*.log
+auto_sync.log
+
+# Python
+__pycache__/
+*.pyc
+
+# Arquivos temporários do Windows e SharePoint/Office
+~$*
+*.tmp
+thumbs.db
+desktop.ini
+
+# VS Code / IDE
+.vscode/
+.idea/

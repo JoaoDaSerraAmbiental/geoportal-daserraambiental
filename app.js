@@ -69,7 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const num = key.replace('projeto_', '');
             return `Projeto ${num}`;
         }
-        return key.replace(/_/g, ' ').toUpperCase();
+        return key.replace(/_/g, ' ');
     }
 
     // Helper: Calculate polygon area in Hectares
@@ -85,11 +85,9 @@ document.addEventListener('DOMContentLoaded', () => {
         return null;
     }
 
-    // Load Limites de Projetos (18 Layers)
+    // Load Limites de Projetos (Ordenados alfabeticamente)
     const sortedProjectKeys = Object.keys(geoData.projetos).sort((a, b) => {
-        const numA = parseInt(a.replace(/\D/g, '')) || 0;
-        const numB = parseInt(b.replace(/\D/g, '')) || 0;
-        return numA - numB;
+        return a.localeCompare(b, 'pt-BR', { numeric: true, sensitivity: 'base' });
     });
 
     sortedProjectKeys.forEach((key, index) => {
@@ -120,10 +118,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     },
                     mouseout: (e) => {
                         geoLayer.resetStyle(e.target);
-                    },
-                    click: (e) => {
-                        L.DomEvent.stopPropagation(e);
-                        showFeatureDetails(feature.properties, projName, color);
                     }
                 });
 
@@ -175,6 +169,10 @@ document.addEventListener('DOMContentLoaded', () => {
             layerName = 'UGRHIs (Bacias Hidrográficas SP)';
             color = '#0284c7';
             subtitle = '22 Bacias Hidrográficas';
+        } else if (key === 'regioes_hidrograficas_ana') {
+            layerName = 'Regiões Hidrográficas (ANA)';
+            color = '#0891b2';
+            subtitle = 'Regiões Hidrográficas Nacionais';
         }
 
         const geoLayer = L.geoJSON(data, {
@@ -192,21 +190,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     },
                     mouseout: (e) => {
                         geoLayer.resetStyle(e.target);
-                    },
-                    click: (e) => {
-                        const props = feature.properties || {};
-                        if (key === 'limites_ughris') {
-                            const title = `UGRHI ${props.Codigo || ''}: ${props.Nome || ''}`;
-                            showFeatureDetails(props, title, color);
-                        } else {
-                            const muniName = props.NM_MUN || props.NAME || 'Município';
-                            showFeatureDetails(props, `Município: ${muniName}`, color);
-                        }
                     }
                 });
                 const props = feature.properties || {};
                 if (key === 'limites_ughris' && props.Nome) {
                     layer.bindPopup(`<strong>UGRHI ${props.Codigo || ''}: ${props.Nome}</strong>`);
+                } else if (key === 'regioes_hidrograficas_ana' && props.regiao_hid) {
+                    layer.bindPopup(`<strong>Região Hidrográfica: ${props.regiao_hid}</strong>`);
                 } else if (props.NM_MUN) {
                     layer.bindPopup(`<strong>Município: ${props.NM_MUN}</strong><br>Área: ${props.AREA_KM2 || '-'} km²`);
                 }
@@ -227,7 +217,10 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     });
 
-    // Update Outros Badge Counter
+    // Update Badges Counters
+    const projetosBadge = document.getElementById('projetos-count');
+    if (projetosBadge) projetosBadge.textContent = sortedProjectKeys.length;
+
     const outrosBadge = document.getElementById('outros-count');
     if (outrosBadge) outrosBadge.textContent = outrosKeys.length;
 
@@ -475,36 +468,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Global Search / Filter Input
-    const searchInput = document.getElementById('layer-search-input');
-    const clearSearchBtn = document.getElementById('clear-search-btn');
 
-    searchInput.addEventListener('input', (e) => {
-        const query = e.target.value.toLowerCase().trim();
-        if (query.length > 0) {
-            clearSearchBtn.classList.add('active');
-        } else {
-            clearSearchBtn.classList.remove('active');
-        }
-
-        document.querySelectorAll('#projetos-layer-list .layer-item').forEach(el => {
-            const name = el.dataset.name || '';
-            const key = el.dataset.key || '';
-            if (name.includes(query) || key.includes(query)) {
-                el.style.display = 'flex';
-            } else {
-                el.style.display = 'none';
-            }
-        });
-    });
-
-    clearSearchBtn.addEventListener('click', () => {
-        searchInput.value = '';
-        clearSearchBtn.classList.remove('active');
-        document.querySelectorAll('#projetos-layer-list .layer-item').forEach(el => {
-            el.style.display = 'flex';
-        });
-    });
 
     // Global Toolbar Buttons: Select All / Deselect All / Fit Bounds
     document.getElementById('btn-select-all').addEventListener('click', () => {
@@ -666,50 +630,47 @@ document.addEventListener('DOMContentLoaded', () => {
         if (statusZoom) statusZoom.textContent = map.getZoom();
     });
 
-    // Feature Details Panel
-    const infoPanel = document.getElementById('info-panel');
-    const infoTitle = document.getElementById('info-panel-title');
-    const infoBody = document.getElementById('info-panel-body');
-    const closeInfoPanelBtn = document.getElementById('close-info-panel-btn');
+    function formatAttributeKey(key) {
+        if (!key) return '';
+        // Normaliza caracteres corrompidos comuns de codificação (ex: ÂÁrea -> Área, ?rea -> Área)
+        return key
+            .replace(/Â/g, '')
+            .replace(/Ã/g, 'Á')
+            .replace(/\?rea/gi, 'Área')
+            .replace(/^rea\b/gi, 'Área')
+            .trim();
+    }
 
-    closeInfoPanelBtn.addEventListener('click', () => {
-        infoPanel.style.display = 'none';
-    });
+    function formatAttributeValue(val) {
+        if (val === null || val === undefined || val === '') {
+            return '<span style="color: #94a3b8;">-</span>';
+        }
+        if (typeof val === 'number') {
+            return val.toLocaleString('pt-BR', { maximumFractionDigits: 4 });
+        }
+        return String(val);
+    }
 
-    function showFeatureDetails(props, title, accentColor) {
-        infoTitle.textContent = title || 'Detalhes do Elemento';
-        infoPanel.style.display = 'block';
+    function createPopupContent(props, projName, color) {
+        let content = `<div class="popup-container project-popup">`;
+        content += `<div class="popup-title" style="color: ${color}; border-left: 4px solid ${color}; padding-left: 8px;">${projName}</div>`;
+        content += `<div class="popup-subtitle-info"><i class="fa-solid fa-table"></i> Tabela de Atributos</div>`;
 
-        let html = `<table class="info-table"><tbody>`;
-        for (const [key, val] of Object.entries(props)) {
-            if (val !== null && val !== undefined && val !== '') {
-                html += `
+        content += `<table class="popup-attribute-table"><tbody>`;
+        const entries = Object.entries(props || {});
+        if (entries.length === 0) {
+            content += `<tr><td colspan="2" style="text-align: center; color: #94a3b8; padding: 8px;">Sem atributos cadastrados</td></tr>`;
+        } else {
+            for (const [key, val] of entries) {
+                content += `
                     <tr>
-                        <th>${key}</th>
-                        <td>${val}</td>
+                        <th>${formatAttributeKey(key)}</th>
+                        <td>${formatAttributeValue(val)}</td>
                     </tr>
                 `;
             }
         }
-        html += `</tbody></table>`;
-        infoBody.innerHTML = html;
-    }
-
-    function createPopupContent(props, projName, color) {
-        let content = `<div class="popup-container">`;
-        content += `<div class="popup-title" style="color: ${color};">${projName}</div>`;
-
-        if (props.Name) {
-            content += `<div class="popup-row"><span class="popup-label">Nome:</span> <span class="popup-value">${props.Name}</span></div>`;
-        }
-        if (props['Área (ha)']) {
-            content += `<div class="popup-row"><span class="popup-label">Área:</span> <span class="popup-value">${props['Área (ha)']} ha</span></div>`;
-        } else if (props['rea (ha)']) {
-            content += `<div class="popup-row"><span class="popup-label">Área:</span> <span class="popup-value">${props['rea (ha)']} ha</span></div>`;
-        }
-        if (props.id) {
-            content += `<div class="popup-row"><span class="popup-label">ID:</span> <span class="popup-value">${props.id}</span></div>`;
-        }
+        content += `</tbody></table>`;
         content += `</div>`;
         return content;
     }
