@@ -241,13 +241,18 @@ document.addEventListener('DOMContentLoaded', () => {
     // 4. Render Left Sidebar Interface (Interface no canto esquerdo)
     // ----------------------------------------------------------------------
     
-    // Render Project Layer List Items
-    const projetosListContainer = document.getElementById('projetos-layer-list');
-    projetosListContainer.innerHTML = '';
+    // Category map — define qual categoria cada projeto pertence
+    // Por padrão todos os projetos atuais estão em 'restauracao'
+    const projectCategory = {}; // key -> 'restauracao' | 'floresta_pronta'
+    sortedProjectKeys.forEach(key => { projectCategory[key] = 'restauracao'; });
 
-    sortedProjectKeys.forEach((key) => {
-        const item = projectLayers[key];
-        
+    // Render Project Layer List Items by Category
+    const restauracaoContainer = document.getElementById('restauracao-layer-list');
+    const florestaContainer    = document.getElementById('floresta-layer-list');
+    restauracaoContainer.innerHTML = '';
+    florestaContainer.innerHTML    = '';
+
+    function buildLayerItem(key, item) {
         const layerEl = document.createElement('div');
         layerEl.className = 'layer-item';
         layerEl.dataset.key = key;
@@ -277,9 +282,35 @@ document.addEventListener('DOMContentLoaded', () => {
                 <input type="range" class="opacity-slider" data-key="${key}" min="0" max="100" value="45">
             </div>
         `;
+        return layerEl;
+    }
 
-        projetosListContainer.appendChild(layerEl);
+    let restauracaoCount = 0;
+    let florestaCount = 0;
+
+    sortedProjectKeys.forEach((key) => {
+        const item = projectLayers[key];
+        const cat  = projectCategory[key] || 'restauracao';
+        const el   = buildLayerItem(key, item);
+
+        if (cat === 'floresta_pronta') {
+            florestaContainer.appendChild(el);
+            florestaCount++;
+        } else {
+            restauracaoContainer.appendChild(el);
+            restauracaoCount++;
+        }
     });
+
+    // Atualizar badges de contagem
+    document.getElementById('restauracao-count').textContent = restauracaoCount;
+    document.getElementById('floresta-count').textContent    = florestaCount;
+
+    // Mensagem se categoria vazia
+    if (florestaCount === 0) {
+        florestaContainer.innerHTML = '<div style="padding: 10px 12px; font-size: 0.78rem; color: var(--text-muted); font-style: italic;">Nenhuma camada adicionada ainda.</div>';
+    }
+
 
     // Render Outros Limites Layer List Items
     const outrosListContainer = document.getElementById('outros-layer-list');
@@ -389,8 +420,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Project Checkbox Toggle
-    projetosListContainer.addEventListener('change', (e) => {
+    // Project Checkbox Toggle (delegado no sidebar-body para cobrir ambas categorias)
+    document.querySelector('.sidebar-body').addEventListener('change', (e) => {
         if (e.target.classList.contains('layer-toggle')) {
             const key = e.target.dataset.key;
             const isChecked = e.target.checked;
@@ -426,8 +457,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Zoom to Project Layer Button Click
-    projetosListContainer.addEventListener('click', (e) => {
+    // Zoom / Expand buttons (delegado no sidebar-body para cobrir ambas categorias)
+    document.querySelector('.sidebar-body').addEventListener('click', (e) => {
         const zoomBtn = e.target.closest('.btn-zoom-layer');
         if (zoomBtn) {
             const key = zoomBtn.dataset.key;
@@ -462,8 +493,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Opacity Slider Input
-    projetosListContainer.addEventListener('input', (e) => {
+    // Opacity Slider Input (delegado no sidebar-body)
+    document.querySelector('.sidebar-body').addEventListener('input', (e) => {
         if (e.target.classList.contains('opacity-slider')) {
             const key = e.target.dataset.key;
             const val = parseFloat(e.target.value) / 100;
@@ -487,7 +518,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 map.addLayer(item.layer);
             }
         });
-        document.querySelectorAll('#projetos-layer-list .layer-toggle').forEach(chk => chk.checked = true);
+        document.querySelectorAll('.layer-toggle').forEach(chk => chk.checked = true);
         updateFooterStats();
     });
 
@@ -499,7 +530,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 map.removeLayer(item.layer);
             }
         });
-        document.querySelectorAll('#projetos-layer-list .layer-toggle').forEach(chk => chk.checked = false);
+        document.querySelectorAll('.layer-toggle').forEach(chk => chk.checked = false);
         updateFooterStats();
     });
 
