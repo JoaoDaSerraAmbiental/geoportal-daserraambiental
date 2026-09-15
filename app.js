@@ -109,15 +109,16 @@ document.addEventListener('DOMContentLoaded', () => {
     sortedProjectKeys.forEach(key => { projectCategory[key] = 'restauracao'; });
     // ↑ Para mover para floresta_pronta: projectCategory['nome_do_projeto'] = 'floresta_pronta';
 
-    // Contadores de cor por categoria (para ciclar corretamente dentro de cada paleta)
-    const colorIndex = { restauracao: 0, floresta_pronta: 0 };
+    // Cor fixa por categoria
+    const categoryColor = {
+        restauracao:   '#52c97a',  // verde claro
+        floresta_pronta: '#1b4332' // verde escuro
+    };
 
     sortedProjectKeys.forEach((key) => {
         const data = geoData.projetos[key];
         const cat  = projectCategory[key] || 'restauracao';
-        const palette = cat === 'floresta_pronta' ? florestaColors : restauracaoColors;
-        const color = palette[colorIndex[cat] % palette.length];
-        colorIndex[cat]++;
+        const color = categoryColor[cat];
 
         const projName = formatProjectName(key);
         const featureCount = data.features ? data.features.length : 0;
