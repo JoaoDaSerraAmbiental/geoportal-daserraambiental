@@ -136,8 +136,8 @@ document.addEventListener('DOMContentLoaded', () => {
             console.warn('Invalid bounds for project:', key);
         }
 
-        // Add to map by default
-        geoLayer.addTo(map);
+        // Not added to map by default (user must toggle on)
+        // geoLayer.addTo(map);
 
         // Save reference
         projectLayers[key] = {
@@ -148,7 +148,7 @@ document.addEventListener('DOMContentLoaded', () => {
             layer: geoLayer,
             featureCount: featureCount,
             areaHa: calculatedAreaHa,
-            visible: true,
+            visible: false,
             opacity: 0.45
         };
     });
@@ -210,7 +210,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        geoLayer.addTo(map);
+        // Not added to map by default (user must toggle on)
+        // geoLayer.addTo(map);
 
         outrosLayers[key] = {
             key: key,
@@ -219,7 +220,7 @@ document.addEventListener('DOMContentLoaded', () => {
             subtitle: subtitle,
             data: data,
             layer: geoLayer,
-            visible: true,
+            visible: false,
             opacity: 0.08
         };
     });
@@ -255,7 +256,7 @@ document.addEventListener('DOMContentLoaded', () => {
         layerEl.innerHTML = `
             <div class="layer-main-row">
                 <div class="layer-left">
-                    <input type="checkbox" class="custom-checkbox layer-toggle" data-key="${key}" checked>
+                    <input type="checkbox" class="custom-checkbox layer-toggle" data-key="${key}">
                     <div class="color-badge" style="background-color: ${item.color};"></div>
                     <div>
                         <div class="layer-name" title="${item.name}">${item.name}</div>
@@ -294,7 +295,7 @@ document.addEventListener('DOMContentLoaded', () => {
         layerEl.innerHTML = `
             <div class="layer-main-row">
                 <div class="layer-left">
-                    <input type="checkbox" class="custom-checkbox outros-toggle" data-key="${key}" checked>
+                    <input type="checkbox" class="custom-checkbox outros-toggle" data-key="${key}">
                     <div class="color-badge" style="background-color: ${item.color};"></div>
                     <div>
                         <div class="layer-name" title="${item.name}">${item.name}</div>
