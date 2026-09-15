@@ -198,7 +198,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else if (key === 'regioes_hidrograficas_ana' && props.rhi_nm) {
                     layer.bindPopup(`
                         <div class="popup-container">
-                            <div class="popup-title" style="color: #0891b2;">🌊 Região Hidrográfica</div>
+                            <div class="popup-title" style="color: #0891b2;">Região Hidrográfica</div>
                             <div class="popup-row"><span class="popup-label">Nome:</span> <span class="popup-value">${props.rhi_nm}</span></div>
                             <div class="popup-row"><span class="popup-label">Sigla:</span> <span class="popup-value">${props.rhi_sg || '-'}</span></div>
                             <div class="popup-row"><span class="popup-label">Área:</span> <span class="popup-value">${props.rhi_ar_km2 ? Number(props.rhi_ar_km2).toLocaleString('pt-BR', {maximumFractionDigits:0}) + ' km²' : '-'}</span></div>
