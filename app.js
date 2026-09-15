@@ -105,14 +105,18 @@ document.addEventListener('DOMContentLoaded', () => {
         return a.localeCompare(b, 'pt-BR', { numeric: true, sensitivity: 'base' });
     });
 
-    // Preenche categorias — padrão: todos em 'restauracao'
-    sortedProjectKeys.forEach(key => { projectCategory[key] = 'restauracao'; });
-    // ↑ Para mover para floresta_pronta: projectCategory['nome_do_projeto'] = 'floresta_pronta';
+    // Categoria lida automaticamente do campo injetado pelo build_data.ps1
+    // (campo "categoria" dentro de cada FeatureCollection)
+    // Não é mais necessário definir projectCategory manualmente.
+    sortedProjectKeys.forEach(key => {
+        const cat = geoData.projetos[key].categoria || 'restauracao';
+        projectCategory[key] = cat;
+    });
 
     // Cor fixa por categoria
     const categoryColor = {
-        restauracao:   '#52c97a',  // verde claro
-        floresta_pronta: '#1b4332' // verde escuro
+        restauracao:     '#52c97a',  // verde claro
+        floresta_pronta: '#1b4332'   // verde escuro
     };
 
     sortedProjectKeys.forEach((key) => {
