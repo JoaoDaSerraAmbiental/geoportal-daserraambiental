@@ -44,14 +44,29 @@ document.addEventListener('DOMContentLoaded', () => {
     let activeBaseMapKey = 'google-satellite';
 
     // ----------------------------------------------------------------------
-    // 2. Color Palette for Projects
+    // 2. Color Palettes por Categoria de Projeto
     // ----------------------------------------------------------------------
-    const projectColors = [
-        '#27ae60', '#e74c3c', '#2980b9', '#8e44ad', '#f39c12',
-        '#16a085', '#d35400', '#c0392b', '#7f8c8d', '#2c3e50',
-        '#00b894', '#6c5ce7', '#fdcb6e', '#e84393', '#00cec9',
-        '#ff7675', '#a29bfe', '#55efc4'
+
+    // Verdes claros — Restauração
+    const restauracaoColors = [
+        '#52c97a', '#4ade80', '#6fcf97', '#57cc99', '#34d399',
+        '#74c69d', '#80ed99', '#86efac', '#52b788', '#95d5b2',
+        '#a8e6cf', '#3ecf78', '#48bb78', '#22c55e', '#5eead4',
+        '#6ee7b7', '#a7f3d0'
     ];
+
+    // Verdes escuros — Floresta Pronta
+    const florestaColors = [
+        '#166534', '#15803d', '#1b4332', '#145a27', '#2d6a4f',
+        '#0d4a20', '#1a6b2e', '#204430', '#1f5c35', '#145c2e',
+        '#40916c', '#1a5436', '#1e4d2b', '#224d3d', '#0f4a22',
+        '#1a4731', '#1a5e36'
+    ];
+
+    // Mapa de categorias — todos os projetos atuais são Restauração.
+    // Para mover um projeto para Floresta Pronta, altere o valor abaixo.
+    // Exemplo: projectCategory['nome_do_projeto'] = 'floresta_pronta';
+    const projectCategory = {};  // preenchido abaixo após sortedProjectKeys
 
     // Data maps
     const projectLayers = {};
@@ -90,9 +105,20 @@ document.addEventListener('DOMContentLoaded', () => {
         return a.localeCompare(b, 'pt-BR', { numeric: true, sensitivity: 'base' });
     });
 
-    sortedProjectKeys.forEach((key, index) => {
+    // Preenche categorias — padrão: todos em 'restauracao'
+    sortedProjectKeys.forEach(key => { projectCategory[key] = 'restauracao'; });
+    // ↑ Para mover para floresta_pronta: projectCategory['nome_do_projeto'] = 'floresta_pronta';
+
+    // Contadores de cor por categoria (para ciclar corretamente dentro de cada paleta)
+    const colorIndex = { restauracao: 0, floresta_pronta: 0 };
+
+    sortedProjectKeys.forEach((key) => {
         const data = geoData.projetos[key];
-        const color = projectColors[index % projectColors.length];
+        const cat  = projectCategory[key] || 'restauracao';
+        const palette = cat === 'floresta_pronta' ? florestaColors : restauracaoColors;
+        const color = palette[colorIndex[cat] % palette.length];
+        colorIndex[cat]++;
+
         const projName = formatProjectName(key);
         const featureCount = data.features ? data.features.length : 0;
         const calculatedAreaHa = calculateGeoJsonArea(data);
@@ -241,10 +267,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 4. Render Left Sidebar Interface (Interface no canto esquerdo)
     // ----------------------------------------------------------------------
     
-    // Category map — define qual categoria cada projeto pertence
-    // Por padrão todos os projetos atuais estão em 'restauracao'
-    const projectCategory = {}; // key -> 'restauracao' | 'floresta_pronta'
-    sortedProjectKeys.forEach(key => { projectCategory[key] = 'restauracao'; });
+    // (projectCategory já definido e preenchido na seção 2/3 acima)
 
     // Render Project Layer List Items by Category
     const restauracaoContainer = document.getElementById('restauracao-layer-list');
