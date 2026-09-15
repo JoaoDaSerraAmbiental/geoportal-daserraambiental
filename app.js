@@ -115,8 +115,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Cor fixa por categoria
     const categoryColor = {
-        restauracao:     '#52c97a',  // verde claro
-        floresta_pronta: '#1b4332'   // verde escuro
+        restauracao:     '#29ff1e',  // verde claro
+        floresta_pronta: '#01a300'   // verde escuro
     };
 
     sortedProjectKeys.forEach((key) => {
