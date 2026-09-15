@@ -779,6 +779,10 @@ body, html {
     box-shadow: 0 10px 25px rgba(0,0,0,0.2);
 }
 
+.leaflet-popup-tip-container {
+    display: none;
+}
+
 .popup-container {
     padding: 8px 10px;
     max-width: 280px;
