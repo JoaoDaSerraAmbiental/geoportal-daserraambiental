@@ -17,6 +17,7 @@ $outPath   = Join-Path $baseDir "geojson_data.js"
 $categorias = [ordered]@{
     "Restaura$(([char]0xE7))$(([char]0xE3))o" = "restauracao"
     "Floresta Pronta"                          = "floresta_pronta"
+    "$(([char]0xC1))rea da Propriedade"        = "area_propriedade"
 }
 
 function Get-FileContentShared($path) {

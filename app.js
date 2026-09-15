@@ -115,8 +115,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Cor fixa por categoria
     const categoryColor = {
-        restauracao:     '#29ff1e',  // verde claro
-        floresta_pronta: '#01a300'   // verde escuro
+        restauracao:      '#29ff1e',  // verde claro
+        floresta_pronta:  '#01a300',  // verde escuro
+        area_propriedade: '#f59e0b'   // âmbar/laranja
     };
 
     sortedProjectKeys.forEach((key) => {
@@ -275,10 +276,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // (projectCategory já definido e preenchido na seção 2/3 acima)
 
     // Render Project Layer List Items by Category
-    const restauracaoContainer = document.getElementById('restauracao-layer-list');
-    const florestaContainer    = document.getElementById('floresta-layer-list');
-    restauracaoContainer.innerHTML = '';
-    florestaContainer.innerHTML    = '';
+    const restauracaoContainer  = document.getElementById('restauracao-layer-list');
+    const florestaContainer     = document.getElementById('floresta-layer-list');
+    const propriedadeContainer  = document.getElementById('propriedade-layer-list');
+    restauracaoContainer.innerHTML  = '';
+    florestaContainer.innerHTML     = '';
+    propriedadeContainer.innerHTML  = '';
 
     function buildLayerItem(key, item) {
         const layerEl = document.createElement('div');
@@ -313,8 +316,11 @@ document.addEventListener('DOMContentLoaded', () => {
         return layerEl;
     }
 
-    let restauracaoCount = 0;
-    let florestaCount = 0;
+    const emptyMsg = '<div style="padding: 10px 12px; font-size: 0.78rem; color: var(--text-muted); font-style: italic;">Nenhuma camada adicionada ainda.</div>';
+
+    let restauracaoCount  = 0;
+    let florestaCount     = 0;
+    let propriedadeCount  = 0;
 
     sortedProjectKeys.forEach((key) => {
         const item = projectLayers[key];
@@ -324,6 +330,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (cat === 'floresta_pronta') {
             florestaContainer.appendChild(el);
             florestaCount++;
+        } else if (cat === 'area_propriedade') {
+            propriedadeContainer.appendChild(el);
+            propriedadeCount++;
         } else {
             restauracaoContainer.appendChild(el);
             restauracaoCount++;
@@ -331,13 +340,13 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Atualizar badges de contagem
-    document.getElementById('restauracao-count').textContent = restauracaoCount;
-    document.getElementById('floresta-count').textContent    = florestaCount;
+    document.getElementById('restauracao-count').textContent  = restauracaoCount;
+    document.getElementById('floresta-count').textContent     = florestaCount;
+    document.getElementById('propriedade-count').textContent  = propriedadeCount;
 
     // Mensagem se categoria vazia
-    if (florestaCount === 0) {
-        florestaContainer.innerHTML = '<div style="padding: 10px 12px; font-size: 0.78rem; color: var(--text-muted); font-style: italic;">Nenhuma camada adicionada ainda.</div>';
-    }
+    if (florestaCount    === 0) florestaContainer.innerHTML    = emptyMsg;
+    if (propriedadeCount === 0) propriedadeContainer.innerHTML = emptyMsg;
 
 
     // Render Outros Limites Layer List Items
