@@ -131,12 +131,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Build Leaflet GeoJSON layer
         const geoLayer = L.geoJSON(data, {
-            style: {
-                color: color,
-                weight: 2.5,
-                opacity: 0.95,
-                fillColor: color,
-                fillOpacity: 0.45
+            style: (feature) => {
+                const status = (feature.properties['Status do Projeto'] || '').trim().toLowerCase();
+                let featureColor = color; // fallback: cor da categoria
+                if (status === 'ativo') {
+                    featureColor = '#f97316'; // laranja
+                } else if (status === 'em finalização' || status === 'em finalizacao' || status === 'finalizado') {
+                    featureColor = '#29ff1e'; // verde
+                }
+                return {
+                    color: featureColor,
+                    weight: 2.5,
+                    opacity: 0.95,
+                    fillColor: featureColor,
+                    fillOpacity: 0.45
+                };
             },
             onEachFeature: (feature, layer) => {
                 // Interactive hover style
