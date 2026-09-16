@@ -147,14 +147,15 @@ document.addEventListener('DOMContentLoaded', () => {
         return defaultColor;
     }
 
-    function getFeatureStyle(feature, defaultColor, opacity = 0.45) {
-        const c = getFeatureColor(feature, defaultColor);
+    function getFeatureStyle(feature, defaultColor, opacity = 0.45, category = '') {
+        const isPropriedade = category === 'area_propriedade';
+        const c = isPropriedade ? defaultColor : getFeatureColor(feature, defaultColor);
         return {
             color: c,
-            weight: 2.5,
+            weight: isPropriedade ? 2.5 : 2.5,
             opacity: 0.95,
-            fillColor: c,
-            fillOpacity: opacity
+            fillColor: isPropriedade ? 'transparent' : c,
+            fillOpacity: isPropriedade ? 0 : opacity
         };
     }
 
@@ -169,21 +170,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Build Leaflet GeoJSON layer
         const geoLayer = L.geoJSON(data, {
-            style: (feature) => getFeatureStyle(feature, color, 0.45),
+            style: (feature) => getFeatureStyle(feature, color, 0.45, cat),
             onEachFeature: (feature, layer) => {
                 // Interactive hover style
                 layer.on({
                     mouseover: (e) => {
                         const l = e.target;
-                        l.setStyle({ weight: 4, fillOpacity: 0.7 });
-                        if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
-                            l.bringToFront();
+                        if (cat === 'area_propriedade') {
+                            l.setStyle({ weight: 4.5, color: '#d97706', fillOpacity: 0 });
+                        } else {
+                            l.setStyle({ weight: 4, fillOpacity: 0.7 });
+                            if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
+                                l.bringToFront();
+                            }
                         }
                     },
                     mouseout: (e) => {
                         const l = e.target;
                         const currentOpacity = (projectLayers[key] && projectLayers[key].opacity !== undefined) ? projectLayers[key].opacity : 0.45;
-                        l.setStyle(getFeatureStyle(l.feature || feature, color, currentOpacity));
+                        l.setStyle(getFeatureStyle(l.feature || feature, color, currentOpacity, cat));
                     }
                 });
 
@@ -210,12 +215,13 @@ document.addEventListener('DOMContentLoaded', () => {
             key: key,
             name: projName,
             color: color,
+            categoria: cat,
             data: data,
             layer: geoLayer,
             featureCount: featureCount,
             areaHa: calculatedAreaHa,
             visible: false,
-            opacity: 0.45
+            opacity: cat === 'area_propriedade' ? 0 : 0.45
         };
     });
 
@@ -323,11 +329,16 @@ document.addEventListener('DOMContentLoaded', () => {
         layerEl.dataset.key = key;
         layerEl.dataset.name = item.name.toLowerCase();
 
+        const isPropriedade = (item.categoria === 'area_propriedade');
+        const badgeStyle = isPropriedade
+            ? `background-color: transparent; border: 2.5px solid ${item.color}; box-sizing: border-box;`
+            : `background-color: ${item.color};`;
+
         layerEl.innerHTML = `
             <div class="layer-main-row">
                 <div class="layer-left">
                     <input type="checkbox" class="custom-checkbox layer-toggle" data-key="${key}">
-                    <div class="color-badge" style="background-color: ${item.color};"></div>
+                    <div class="color-badge" style="${badgeStyle}"></div>
                     <div>
                         <div class="layer-name" title="${item.name}">${item.name}</div>
                         <div class="layer-subtitle">${item.featureCount} ${item.featureCount === 1 ? 'polígono' : 'polígonos'} ${item.areaHa ? '• ' + item.areaHa + ' ha' : ''}</div>
@@ -343,8 +354,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             </div>
             <div class="layer-extra-controls">
-                <span class="opacity-label">Opacidade:</span>
-                <input type="range" class="opacity-slider" data-key="${key}" min="0" max="100" value="45">
+                <span class="opacity-label">${isPropriedade ? 'Contorno:' : 'Opacidade:'}</span>
+                <input type="range" class="opacity-slider" data-key="${key}" min="0" max="100" value="${isPropriedade ? 95 : 45}">
             </div>
         `;
         return layerEl;
@@ -502,6 +513,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 item.visible = isChecked;
                 if (isChecked) {
                     map.addLayer(item.layer);
+                    if (item.categoria === 'area_propriedade') {
+                        item.layer.bringToBack();
+                    }
                 } else {
                     map.removeLayer(item.layer);
                 }
@@ -573,7 +587,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (item && item.layer) {
                 item.opacity = val;
-                item.layer.setStyle({ fillOpacity: val });
+                if (item.categoria === 'area_propriedade') {
+                    item.layer.setStyle({ opacity: Math.max(0.1, val), fillOpacity: 0 });
+                } else {
+                    item.layer.setStyle({ fillOpacity: val });
+                }
             }
         }
     });
@@ -637,8 +655,9 @@ document.addEventListener('DOMContentLoaded', () => {
         Object.keys(projectLayers).forEach(key => {
             const item = projectLayers[key];
             if (item && item.layer) {
-                const currentOpacity = (item.opacity !== undefined) ? item.opacity : 0.45;
-                item.layer.setStyle((feat) => getFeatureStyle(feat, item.color, currentOpacity));
+                const cat = item.categoria || projectCategory[key] || 'restauracao';
+                const currentOpacity = (item.opacity !== undefined) ? item.opacity : (cat === 'area_propriedade' ? 0 : 0.45);
+                item.layer.setStyle((feat) => getFeatureStyle(feat, item.color, currentOpacity, cat));
             }
         });
     }
