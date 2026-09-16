@@ -511,9 +511,91 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Accordion Sections Collapse / Expand
     document.querySelectorAll('.accordion-header').forEach(header => {
-        header.addEventListener('click', () => {
+        header.addEventListener('click', (e) => {
+            if (e.target.closest('.btn-cat-toggle')) return;
             const section = header.closest('.accordion-section');
-            section.classList.toggle('active');
+            if (section) section.classList.toggle('active');
+        });
+    });
+
+    // Alternar todas as camadas de uma categoria (botão no cabeçalho do acordeão)
+    function toggleCategory(cat) {
+        const catKeys = Object.keys(projectLayers).filter(key => {
+            const item = projectLayers[key];
+            const itemCat = item.categoria || projectCategory[key] || 'restauracao';
+            return itemCat === cat;
+        });
+
+        if (catKeys.length === 0) return;
+
+        // Se todas estiverem ativas, desativa; senão, ativa todas
+        const allActive = catKeys.every(k => projectLayers[k].visible);
+        const targetState = !allActive;
+
+        catKeys.forEach(key => {
+            const item = projectLayers[key];
+            item.visible = targetState;
+            if (targetState) {
+                if (!map.hasLayer(item.layer)) {
+                    map.addLayer(item.layer);
+                    if (item.categoria === 'area_propriedade') {
+                        item.layer.bringToBack();
+                    }
+                }
+            } else {
+                if (map.hasLayer(item.layer)) {
+                    map.removeLayer(item.layer);
+                }
+            }
+        });
+
+        // Atualizar checkboxes DOM correspondentes
+        let containerId = '';
+        if (cat === 'restauracao') containerId = 'restauracao-layer-list';
+        else if (cat === 'floresta_pronta') containerId = 'floresta-layer-list';
+        else if (cat === 'area_propriedade') containerId = 'propriedade-layer-list';
+
+        if (containerId) {
+            const container = document.getElementById(containerId);
+            if (container) {
+                container.querySelectorAll('.layer-toggle').forEach(chk => {
+                    chk.checked = targetState;
+                });
+            }
+        }
+
+        updateCategoryButtonState(cat);
+        updateFooterStats();
+    }
+
+    function updateCategoryButtonState(cat) {
+        const catKeys = Object.keys(projectLayers).filter(key => {
+            const item = projectLayers[key];
+            const itemCat = item.categoria || projectCategory[key] || 'restauracao';
+            return itemCat === cat;
+        });
+
+        const btn = document.querySelector(`.btn-cat-toggle[data-category="${cat}"]`);
+        if (!btn || catKeys.length === 0) return;
+
+        const allActive = catKeys.every(k => projectLayers[k].visible);
+        btn.classList.toggle('active', allActive);
+        btn.title = allActive
+            ? 'Desativar todas as camadas deste bloco'
+            : 'Ativar todas as camadas deste bloco';
+    }
+
+    function updateAllCategoryButtons() {
+        ['restauracao', 'floresta_pronta', 'area_propriedade'].forEach(cat => updateCategoryButtonState(cat));
+    }
+
+    document.querySelectorAll('.btn-cat-toggle').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const cat = btn.dataset.category;
+            if (cat) {
+                toggleCategory(cat);
+            }
         });
     });
 
@@ -534,6 +616,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     map.removeLayer(item.layer);
                 }
+                updateAllCategoryButtons();
                 updateFooterStats();
             }
         }
@@ -620,9 +703,13 @@ document.addEventListener('DOMContentLoaded', () => {
             item.visible = true;
             if (!map.hasLayer(item.layer)) {
                 map.addLayer(item.layer);
+                if (item.categoria === 'area_propriedade') {
+                    item.layer.bringToBack();
+                }
             }
         });
         document.querySelectorAll('.layer-toggle').forEach(chk => chk.checked = true);
+        updateAllCategoryButtons();
         updateFooterStats();
     });
 
@@ -635,6 +722,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
         document.querySelectorAll('.layer-toggle').forEach(chk => chk.checked = false);
+        updateAllCategoryButtons();
         updateFooterStats();
     });
 
