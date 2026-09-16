@@ -625,14 +625,9 @@ document.addEventListener('DOMContentLoaded', () => {
             colorByStatusEnabled = !colorByStatusEnabled;
             btnToggleStatus.classList.toggle('active', colorByStatusEnabled);
 
-            const labelEl = document.getElementById('toggle-status-label');
-            if (labelEl) {
-                labelEl.textContent = colorByStatusEnabled ? 'Status Ativo (Laranja/Verde)' : 'Cor por Status';
-            }
-
             btnToggleStatus.title = colorByStatusEnabled
                 ? 'Clique para voltar às cores normais das categorias'
-                : 'Colorir camadas por Status do Projeto (Laranja = Ativo, Verde = Em finalização)';
+                : 'Colorir camadas por Status do Projeto (Laranja = Ativo, Verde = Em finalização/Finalizado)';
 
             updateAllProjectLayerStyles();
         });
