@@ -463,16 +463,31 @@ document.addEventListener('DOMContentLoaded', () => {
     updateFooterStats();
 
     function updateFooterStats() {
-        const visibleCount = Object.values(projectLayers).filter(p => p.visible).length;
-        document.getElementById('visible-projects-count').textContent = visibleCount;
+        let restauracaoHa = 0;
+        let florestaHa = 0;
 
-        let totalHa = 0;
         Object.values(projectLayers).forEach(p => {
             if (p.visible && p.areaHa) {
-                totalHa += parseFloat(p.areaHa);
+                const area = parseFloat(p.areaHa);
+                if (!isNaN(area)) {
+                    if (p.categoria === 'restauracao') {
+                        restauracaoHa += area;
+                    } else if (p.categoria === 'floresta_pronta') {
+                        florestaHa += area;
+                    }
+                }
             }
         });
-        document.getElementById('total-area-display').textContent = totalHa > 0 ? `${totalHa.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ha` : '0.00 ha';
+
+        const fmt = (val) => val > 0
+            ? `${val.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ha`
+            : '0,00 ha';
+
+        const restEl = document.getElementById('restauracao-area-display');
+        if (restEl) restEl.textContent = fmt(restauracaoHa);
+
+        const florEl = document.getElementById('floresta-area-display');
+        if (florEl) florEl.textContent = fmt(florestaHa);
     }
 
     // ----------------------------------------------------------------------

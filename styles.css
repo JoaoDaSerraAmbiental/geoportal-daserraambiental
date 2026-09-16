@@ -628,13 +628,8 @@ body, html {
 .stats-item {
     display: flex;
     align-items: center;
-    gap: 6px;
-    font-weight: 600;
-}
-
-.stats-item span {
-    color: var(--primary-color);
-    font-weight: 700;
+    gap: 8px;
+    flex: 1;
 }
 
 /* ==========================================================================
