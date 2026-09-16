@@ -120,6 +120,44 @@ document.addEventListener('DOMContentLoaded', () => {
         area_propriedade: '#f59e0b'   // âmbar/laranja
     };
 
+    // Controle dinâmico: alternar cores por Status do Projeto
+    let colorByStatusEnabled = false;
+
+    function getFeatureStatus(feature) {
+        if (!feature || !feature.properties) return '';
+        const props = feature.properties;
+        for (const k of Object.keys(props)) {
+            const normKey = k.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            if (normKey.includes('status') || normKey.includes('situacao')) {
+                const val = props[k];
+                if (val) return String(val).trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            }
+        }
+        return '';
+    }
+
+    function getFeatureColor(feature, defaultColor) {
+        if (!colorByStatusEnabled) return defaultColor;
+        const status = getFeatureStatus(feature);
+        if (status === 'ativo') {
+            return '#f97316'; // Laranja
+        } else if (status.includes('finaliz')) {
+            return '#29ff1e'; // Verde
+        }
+        return defaultColor;
+    }
+
+    function getFeatureStyle(feature, defaultColor, opacity = 0.45) {
+        const c = getFeatureColor(feature, defaultColor);
+        return {
+            color: c,
+            weight: 2.5,
+            opacity: 0.95,
+            fillColor: c,
+            fillOpacity: opacity
+        };
+    }
+
     sortedProjectKeys.forEach((key) => {
         const data = geoData.projetos[key];
         const cat  = projectCategory[key] || 'restauracao';
@@ -131,22 +169,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Build Leaflet GeoJSON layer
         const geoLayer = L.geoJSON(data, {
-            style: (feature) => {
-                const status = (feature.properties['Status do Projeto'] || '').trim().toLowerCase();
-                let featureColor = color; // fallback: cor da categoria
-                if (status === 'ativo') {
-                    featureColor = '#f97316'; // laranja
-                } else if (status === 'em finalização' || status === 'em finalizacao' || status === 'finalizado') {
-                    featureColor = '#29ff1e'; // verde
-                }
-                return {
-                    color: featureColor,
-                    weight: 2.5,
-                    opacity: 0.95,
-                    fillColor: featureColor,
-                    fillOpacity: 0.45
-                };
-            },
+            style: (feature) => getFeatureStyle(feature, color, 0.45),
             onEachFeature: (feature, layer) => {
                 // Interactive hover style
                 layer.on({
@@ -158,12 +181,14 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     },
                     mouseout: (e) => {
-                        geoLayer.resetStyle(e.target);
+                        const l = e.target;
+                        const currentOpacity = (projectLayers[key] && projectLayers[key].opacity !== undefined) ? projectLayers[key].opacity : 0.45;
+                        l.setStyle(getFeatureStyle(l.feature || feature, color, currentOpacity));
                     }
                 });
 
                 // Attach Popup
-                layer.bindPopup(() => createPopupContent(feature.properties, projName, color));
+                layer.bindPopup(() => createPopupContent(feature.properties, projName, getFeatureColor(feature, color)));
             }
         });
 
@@ -592,6 +617,36 @@ document.addEventListener('DOMContentLoaded', () => {
             map.fitBounds(activeBounds, { padding: [40, 40] });
         }
     });
+
+    // Botão de alternância: Cor por Status do Projeto
+    const btnToggleStatus = document.getElementById('btn-toggle-status');
+    if (btnToggleStatus) {
+        btnToggleStatus.addEventListener('click', () => {
+            colorByStatusEnabled = !colorByStatusEnabled;
+            btnToggleStatus.classList.toggle('active', colorByStatusEnabled);
+
+            const labelEl = document.getElementById('toggle-status-label');
+            if (labelEl) {
+                labelEl.textContent = colorByStatusEnabled ? 'Status Ativo (Laranja/Verde)' : 'Cor por Status';
+            }
+
+            btnToggleStatus.title = colorByStatusEnabled
+                ? 'Clique para voltar às cores normais das categorias'
+                : 'Colorir camadas por Status do Projeto (Laranja = Ativo, Verde = Em finalização)';
+
+            updateAllProjectLayerStyles();
+        });
+    }
+
+    function updateAllProjectLayerStyles() {
+        Object.keys(projectLayers).forEach(key => {
+            const item = projectLayers[key];
+            if (item && item.layer) {
+                const currentOpacity = (item.opacity !== undefined) ? item.opacity : 0.45;
+                item.layer.setStyle((feat) => getFeatureStyle(feat, item.color, currentOpacity));
+            }
+        });
+    }
 
     // Jump to UGRHI (Bacia Hidrográfica)
     const ugrhiSelectEl = document.getElementById('ugrhi-select');

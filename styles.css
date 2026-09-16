@@ -249,6 +249,17 @@ body, html {
     border-color: var(--accent-color);
 }
 
+.btn-tool.active {
+    background: var(--primary-color);
+    color: #ffffff;
+    border-color: var(--primary-color);
+}
+
+.btn-tool.active:hover {
+    background: var(--accent-color);
+    border-color: var(--accent-color);
+}
+
 /* Sidebar Scrollable Body */
 .sidebar-body {
     flex: 1;
