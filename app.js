@@ -142,7 +142,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (status === 'ativo') {
             return '#f97316'; // Laranja
         } else if (status.includes('finaliz')) {
-            return '#29ff1e'; // Verde
+            return '#2563eb'; // Azul
         }
         return defaultColor;
     }
@@ -627,7 +627,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             btnToggleStatus.title = colorByStatusEnabled
                 ? 'Clique para voltar às cores normais das categorias'
-                : 'Colorir camadas por Status do Projeto (Laranja = Ativo, Verde = Em finalização/Finalizado)';
+                : 'Colorir camadas por Status do Projeto (Laranja = Ativo, Azul = Em finalização/Finalizado)';
 
             updateAllProjectLayerStyles();
         });
