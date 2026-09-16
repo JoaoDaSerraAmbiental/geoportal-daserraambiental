@@ -117,7 +117,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const categoryColor = {
         restauracao:      '#29ff1e',  // verde claro
         floresta_pronta:  '#01a300',  // verde escuro
-        area_propriedade: '#f59e0b'   // âmbar/laranja
+        area_propriedade: '#dc2626'   // vermelho
     };
 
     // Controle dinâmico: alternar cores por Status do Projeto
@@ -152,7 +152,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const c = isPropriedade ? defaultColor : getFeatureColor(feature, defaultColor);
         return {
             color: c,
-            weight: isPropriedade ? 2.5 : 2.5,
+            weight: isPropriedade ? 1.2 : 2.5,
             opacity: 0.95,
             fillColor: isPropriedade ? 'transparent' : c,
             fillOpacity: isPropriedade ? 0 : opacity
@@ -177,7 +177,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     mouseover: (e) => {
                         const l = e.target;
                         if (cat === 'area_propriedade') {
-                            l.setStyle({ weight: 4.5, color: '#d97706', fillOpacity: 0 });
+                            l.setStyle({ weight: 2.4, color: '#b91c1c', fillOpacity: 0 });
                         } else {
                             l.setStyle({ weight: 4, fillOpacity: 0.7 });
                             if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
