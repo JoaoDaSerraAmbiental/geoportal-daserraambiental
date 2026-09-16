@@ -461,6 +461,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Update Footer Summary Statistics
     updateFooterStats();
+    updateAllCategoryButtons();
 
     function updateFooterStats() {
         let restauracaoHa = 0;
@@ -512,7 +513,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Accordion Sections Collapse / Expand
     document.querySelectorAll('.accordion-header').forEach(header => {
         header.addEventListener('click', (e) => {
-            if (e.target.closest('.btn-cat-toggle')) return;
+            if (e.target.closest('.btn-cat-toggle') || e.target.closest('button')) return;
             const section = header.closest('.accordion-section');
             if (section) section.classList.toggle('active');
         });
@@ -589,15 +590,21 @@ document.addEventListener('DOMContentLoaded', () => {
         ['restauracao', 'floresta_pronta', 'area_propriedade'].forEach(cat => updateCategoryButtonState(cat));
     }
 
-    document.querySelectorAll('.btn-cat-toggle').forEach(btn => {
-        btn.addEventListener('click', (e) => {
+    // Interceptar clique nos botões de alternar categoria na fase de captura (capture phase)
+    // Isso garante que e.stopPropagation() e e.stopImmediatePropagation() impeçam qualquer clique
+    // de alcançar o cabeçalho do acordeão ou acionar abertura/fechamento de abas.
+    document.addEventListener('click', (e) => {
+        const btn = e.target.closest('.btn-cat-toggle');
+        if (btn) {
+            e.preventDefault();
             e.stopPropagation();
+            e.stopImmediatePropagation();
             const cat = btn.dataset.category;
             if (cat) {
                 toggleCategory(cat);
             }
-        });
-    });
+        }
+    }, true);
 
     // Project Checkbox Toggle (delegado no sidebar-body para cobrir ambas categorias)
     document.querySelector('.sidebar-body').addEventListener('change', (e) => {

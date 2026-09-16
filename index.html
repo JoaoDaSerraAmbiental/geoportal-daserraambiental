@@ -19,7 +19,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
     
     <!-- Custom Styles -->
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css?v=2">
 </head>
 <body>
     <div id="app-container">
@@ -76,7 +76,7 @@
                             <span>Restauração</span>
                         </div>
                         <div style="display: flex; align-items: center; gap: 8px;">
-                            <button class="btn-cat-toggle" data-category="restauracao" title="Ativar / Desativar todas as camadas de Restauração">
+                            <button type="button" class="btn-cat-toggle" data-category="restauracao" onclick="event.stopPropagation();" title="Ativar / Desativar todas as camadas de Restauração">
                                 <i class="fa-solid fa-check-double"></i>
                             </button>
                             <span class="accordion-badge" id="restauracao-count">0</span>
@@ -98,7 +98,7 @@
                             <span>Floresta Pronta</span>
                         </div>
                         <div style="display: flex; align-items: center; gap: 8px;">
-                            <button class="btn-cat-toggle" data-category="floresta_pronta" title="Ativar / Desativar todas as camadas de Floresta Pronta">
+                            <button type="button" class="btn-cat-toggle" data-category="floresta_pronta" onclick="event.stopPropagation();" title="Ativar / Desativar todas as camadas de Floresta Pronta">
                                 <i class="fa-solid fa-check-double"></i>
                             </button>
                             <span class="accordion-badge" id="floresta-count">0</span>
@@ -120,7 +120,7 @@
                             <span>Área da Propriedade</span>
                         </div>
                         <div style="display: flex; align-items: center; gap: 8px;">
-                            <button class="btn-cat-toggle" data-category="area_propriedade" title="Ativar / Desativar todas as camadas de Área da Propriedade">
+                            <button type="button" class="btn-cat-toggle" data-category="area_propriedade" onclick="event.stopPropagation();" title="Ativar / Desativar todas as camadas de Área da Propriedade">
                                 <i class="fa-solid fa-check-double"></i>
                             </button>
                             <span class="accordion-badge" id="propriedade-count">0</span>
@@ -253,6 +253,6 @@
     <script src="geojson_data.js"></script>
 
     <!-- Custom Application Logic -->
-    <script src="app.js"></script>
+    <script src="app.js?v=2"></script>
 </body>
 </html>
