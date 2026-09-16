@@ -21,16 +21,27 @@ def build_dataset():
         'outros': {}
     }
 
-    # Process Limites de Projetos
-    if os.path.exists(projetos_dir):
-        for filepath in sorted(glob.glob(os.path.join(projetos_dir, '*.geojson'))):
-            key = os.path.splitext(os.path.basename(filepath))[0]
-            try:
-                with open(filepath, 'r', encoding='utf-8') as f:
-                    geoportal_data['projetos'][key] = json.load(f)
-                print(f"[OK] Projeto carregado: {key}")
-            except Exception as e:
-                print(f"[ERRO] Falha ao carregar {key}: {e}")
+    categorias = [
+        ('Restauração', 'restauracao'),
+        ('Floresta Pronta', 'floresta_pronta'),
+        ('Área da Propriedade', 'area_propriedade')
+    ]
+
+    # Process Limites de Projetos por Categoria
+    for cat_folder, cat_key in categorias:
+        cat_dir = os.path.join(projetos_dir, cat_folder)
+        if os.path.exists(cat_dir):
+            for filepath in sorted(glob.glob(os.path.join(cat_dir, '*.geojson'))):
+                raw_name = os.path.splitext(os.path.basename(filepath))[0]
+                key = f"{cat_key}__{raw_name}"
+                try:
+                    with open(filepath, 'r', encoding='utf-8') as f:
+                        data = json.load(f)
+                        data['categoria'] = cat_key
+                        geoportal_data['projetos'][key] = data
+                    print(f"[OK] [{cat_folder}] {raw_name} ({key})")
+                except Exception as e:
+                    print(f"[ERRO] Falha ao carregar {key}: {e}")
 
     # Process Outros Limites
     if os.path.exists(outros_dir):

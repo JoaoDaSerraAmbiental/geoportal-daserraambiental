@@ -48,7 +48,8 @@ foreach ($catFolder in $categorias.Keys) {
     $projFiles = Get-ChildItem $catDir -Filter "*.geojson" | Sort-Object Name
 
     foreach ($f in $projFiles) {
-        $key = [System.IO.Path]::GetFileNameWithoutExtension($f.Name)
+        $rawKey = [System.IO.Path]::GetFileNameWithoutExtension($f.Name)
+        $key = "${catKey}__${rawKey}"
         try {
             $content = (Get-FileContentShared $f.FullName).Trim()
 
@@ -59,7 +60,7 @@ foreach ($catFolder in $categorias.Keys) {
             if (-not $firstProj) { [void]$sb.Append(",") }
             $firstProj = $false
             [void]$sb.Append("`"$key`":$content")
-            Write-Host " [OK] [$catFolder] $key"
+            Write-Host " [OK] [$catFolder] $rawKey ($key)"
         } catch {
             Write-Host " [ERRO] Falha ao carregar $($key): $_"
         }

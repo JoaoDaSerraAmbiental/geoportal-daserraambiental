@@ -80,11 +80,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Format project names for display
     function formatProjectName(key) {
-        if (key.startsWith('projeto_')) {
-            const num = key.replace('projeto_', '');
+        let clean = key.replace(/^(restauracao|floresta_pronta|area_propriedade)__/, '');
+        if (clean.startsWith('projeto_')) {
+            const num = clean.replace('projeto_', '');
             return `Projeto ${num}`;
         }
-        return key.replace(/_/g, ' ');
+        return clean.replace(/_/g, ' ');
     }
 
     // Helper: Calculate polygon area in Hectares
@@ -100,16 +101,22 @@ document.addEventListener('DOMContentLoaded', () => {
         return null;
     }
 
-    // Load Limites de Projetos (Ordenados alfabeticamente)
+    // Load Limites de Projetos (Ordenados alfabeticamente pelo nome exibido)
     const sortedProjectKeys = Object.keys(geoData.projetos).sort((a, b) => {
-        return a.localeCompare(b, 'pt-BR', { numeric: true, sensitivity: 'base' });
+        const nameA = formatProjectName(a);
+        const nameB = formatProjectName(b);
+        return nameA.localeCompare(nameB, 'pt-BR', { numeric: true, sensitivity: 'base' });
     });
 
     // Categoria lida automaticamente do campo injetado pelo build_data.ps1
-    // (campo "categoria" dentro de cada FeatureCollection)
-    // Não é mais necessário definir projectCategory manualmente.
+    // (campo "categoria" dentro de cada FeatureCollection) ou pelo prefixo da chave
     sortedProjectKeys.forEach(key => {
-        const cat = geoData.projetos[key].categoria || 'restauracao';
+        let cat = geoData.projetos[key].categoria;
+        if (!cat) {
+            if (key.startsWith('area_propriedade__')) cat = 'area_propriedade';
+            else if (key.startsWith('floresta_pronta__')) cat = 'floresta_pronta';
+            else cat = 'restauracao';
+        }
         projectCategory[key] = cat;
     });
 
