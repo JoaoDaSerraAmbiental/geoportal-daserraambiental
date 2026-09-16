@@ -125,39 +125,6 @@
                     </div>
                 </div>
 
-                <!-- Section 4: Outros Limites (Municípios & UGRHIs SP) -->
-                <div class="accordion-section active" id="sec-outros">
-                    <div class="accordion-header">
-                        <div class="accordion-title">
-                            <i class="fa-solid fa-draw-polygon"></i>
-                            <span>Outros Limites</span>
-                        </div>
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <span class="accordion-badge" id="outros-count">2</span>
-                            <i class="fa-solid fa-chevron-down accordion-chevron"></i>
-                        </div>
-                    </div>
-                    <div class="accordion-content">
-                        <div class="layer-list" id="outros-layer-list">
-                            <!-- Outros Limites layers injected dynamically -->
-                        </div>
-                        
-                        <!-- Quick Jump to UGRHI (Bacia Hidrográfica) -->
-                        <div class="muni-search-box">
-                            <select id="ugrhi-select" class="muni-select">
-                                <option value="">-- Ir para UGRHI (Bacia Hidrográfica) --</option>
-                            </select>
-                        </div>
-
-                        <!-- Quick Jump to Municipality -->
-                        <div class="muni-search-box">
-                            <select id="muni-select" class="muni-select">
-                                <option value="">-- Ir para Município (SP) --</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
             </div>
 
             <!-- Sidebar Footer / Statistics -->
@@ -199,7 +166,7 @@
                 </div>
             </div>
 
-            <!-- Floating Right Base Map Selector (Centralizado no Lado Direito) -->
+            <!-- Floating Right Panel: Camadas Base & Outros Limites -->
             <div class="basemap-floating-right" id="basemap-floating-right">
                 <div class="basemap-floating-title">
                     <i class="fa-solid fa-layer-group"></i> Camadas Base
@@ -217,17 +184,38 @@
                         </div>
                         <span class="basemap-label">Google Maps</span>
                     </div>
-                    <div class="basemap-card" data-basemap="google-hybrid" title="Google Híbrido">
-                        <div class="basemap-icon" style="background-image: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url('https://mt1.google.com/vt/lyrs=y&x=149&y=97&z=8');">
-                            <i class="fa-solid fa-globe"></i>
+                </div>
+
+                <!-- Section: Outros Limites (Municípios & UGRHIs SP) -->
+                <div class="accordion-section active" id="sec-outros">
+                    <div class="accordion-header">
+                        <div class="accordion-title">
+                            <i class="fa-solid fa-draw-polygon"></i>
+                            <span>Outros Limites</span>
                         </div>
-                        <span class="basemap-label">Google Híbrido</span>
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <span class="accordion-badge" id="outros-count">3</span>
+                            <i class="fa-solid fa-chevron-down accordion-chevron"></i>
+                        </div>
                     </div>
-                    <div class="basemap-card" data-basemap="osm" title="OpenStreetMap">
-                        <div class="basemap-icon" style="background: #e2e8f0; color: #334155;">
-                            <i class="fa-solid fa-map-location-dot"></i>
+                    <div class="accordion-content">
+                        <div class="layer-list" id="outros-layer-list">
+                            <!-- Outros Limites layers injected dynamically -->
                         </div>
-                        <span class="basemap-label">OpenStreetMap</span>
+                        
+                        <!-- Quick Jump to UGRHI (Bacia Hidrográfica) -->
+                        <div class="muni-search-box">
+                            <select id="ugrhi-select" class="muni-select">
+                                <option value="">-- Ir para UGRHI --</option>
+                            </select>
+                        </div>
+
+                        <!-- Quick Jump to Municipality -->
+                        <div class="muni-search-box">
+                            <select id="muni-select" class="muni-select">
+                                <option value="">-- Ir para Município --</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
             </div>
