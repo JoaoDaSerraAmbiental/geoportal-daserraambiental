@@ -214,8 +214,8 @@ document.addEventListener('DOMContentLoaded', () => {
             console.warn('Invalid bounds for project:', key);
         }
 
-        // Not added to map by default (user must toggle on)
-        // geoLayer.addTo(map);
+        // Add to map by default (all layers active on load)
+        geoLayer.addTo(map);
 
         // Save reference
         projectLayers[key] = {
@@ -227,7 +227,7 @@ document.addEventListener('DOMContentLoaded', () => {
             layer: geoLayer,
             featureCount: featureCount,
             areaHa: calculatedAreaHa,
-            visible: false,
+            visible: true,
             opacity: cat === 'area_propriedade' ? 0 : 0.45
         };
     });
@@ -289,8 +289,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // Not added to map by default (user must toggle on)
-        // geoLayer.addTo(map);
+        // Add to map by default (all layers active on load)
+        geoLayer.addTo(map);
 
         outrosLayers[key] = {
             key: key,
@@ -299,7 +299,7 @@ document.addEventListener('DOMContentLoaded', () => {
             subtitle: subtitle,
             data: data,
             layer: geoLayer,
-            visible: false,
+            visible: true,
             opacity: 0.08
         };
     });
@@ -344,7 +344,7 @@ document.addEventListener('DOMContentLoaded', () => {
         layerEl.innerHTML = `
             <div class="layer-main-row">
                 <div class="layer-left">
-                    <input type="checkbox" class="custom-checkbox layer-toggle" data-key="${key}">
+                    <input type="checkbox" class="custom-checkbox layer-toggle" data-key="${key}" ${item.visible ? 'checked' : ''}>
                     <div class="color-badge" style="${badgeStyle}"></div>
                     <div>
                         <div class="layer-name" title="${item.name}">${item.name}</div>
@@ -415,7 +415,7 @@ document.addEventListener('DOMContentLoaded', () => {
         layerEl.innerHTML = `
             <div class="layer-main-row">
                 <div class="layer-left">
-                    <input type="checkbox" class="custom-checkbox outros-toggle" data-key="${key}">
+                    <input type="checkbox" class="custom-checkbox outros-toggle" data-key="${key}" ${item.visible ? 'checked' : ''}>
                     <div class="color-badge" style="background-color: ${item.color};"></div>
                     <div>
                         <div class="layer-name" title="${item.name}">${item.name}</div>
@@ -432,6 +432,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
         outrosListContainer.appendChild(layerEl);
     });
+
+    // Populate ANA Regiões Hidrográficas Dropdown Selector
+    const anaSelect = document.getElementById('ana-select');
+    if (anaSelect && outrosLayers['regioes_hidrograficas_ana'] && outrosLayers['regioes_hidrograficas_ana'].data) {
+        const features = outrosLayers['regioes_hidrograficas_ana'].data.features || [];
+        const sortedAna = features
+            .filter(f => f.properties && f.properties.rhi_nm)
+            .sort((a, b) => (a.properties.rhi_nm || '').localeCompare(b.properties.rhi_nm || '', 'pt-BR'));
+
+        sortedAna.forEach(f => {
+            const opt = document.createElement('option');
+            opt.value = f.properties.rhi_nm;
+            opt.textContent = `RH ${f.properties.rhi_nm}`;
+            anaSelect.appendChild(opt);
+        });
+    }
 
     // Populate UGRHI Dropdown Selector
     const ugrhiSelect = document.getElementById('ugrhi-select');
@@ -775,6 +791,36 @@ document.addEventListener('DOMContentLoaded', () => {
                 const cat = item.categoria || projectCategory[key] || 'restauracao';
                 const currentOpacity = (item.opacity !== undefined) ? item.opacity : (cat === 'area_propriedade' ? 0 : 0.45);
                 item.layer.setStyle((feat) => getFeatureStyle(feat, item.color, currentOpacity, cat));
+            }
+        });
+    }
+
+    // Jump to Região Hidrográfica (ANA)
+    const anaSelectEl = document.getElementById('ana-select');
+    if (anaSelectEl) {
+        anaSelectEl.addEventListener('change', (e) => {
+            const rhiName = e.target.value;
+            if (!rhiName) return;
+
+            const anaItem = outrosLayers['regioes_hidrograficas_ana'];
+            if (anaItem) {
+                if (!anaItem.visible && !map.hasLayer(anaItem.layer)) {
+                    map.addLayer(anaItem.layer);
+                    anaItem.visible = true;
+                    const chk = document.querySelector(`.outros-toggle[data-key="regioes_hidrograficas_ana"]`);
+                    if (chk) chk.checked = true;
+                }
+                if (anaItem.layer) {
+                    anaItem.layer.eachLayer(l => {
+                        if (l.feature && l.feature.properties && l.feature.properties.rhi_nm === rhiName) {
+                            const bounds = l.getBounds();
+                            if (bounds.isValid()) {
+                                map.fitBounds(bounds, { padding: [40, 40] });
+                                l.openPopup();
+                            }
+                        }
+                    });
+                }
             }
         });
     }

@@ -2,9 +2,9 @@
 Geoportal - Da Serra Ambiental
 Automated Data Build Script (build_data.py)
 
-This script scans 'Limites de Projetos' and 'Outros Limites' directories,
-validates all GeoJSON files, and outputs a bundled 'geojson_data.js' file
-for GitHub Pages deployment.
+This script scans 'Limites de Projetos' (supporting sub-category folders)
+and 'Outros Limites' directories, validates all GeoJSON files, and outputs
+a bundled 'geojson_data.js' file for WebGIS deployment.
 """
 
 import json
@@ -21,27 +21,26 @@ def build_dataset():
         'outros': {}
     }
 
-    categorias = [
-        ('Restauração', 'restauracao'),
-        ('Floresta Pronta', 'floresta_pronta'),
-        ('Área da Propriedade', 'area_propriedade')
-    ]
+    # Process Limites de Projetos (supporting subfolder categories)
+    if os.path.exists(projetos_dir):
+        for root, dirs, files in os.walk(projetos_dir):
+            geojsons = [f for f in files if f.endswith('.geojson')]
+            if geojsons:
+                rel_path = os.path.relpath(root, projetos_dir)
+                category = 'Geral' if rel_path == '.' else rel_path.replace('\\', '/')
+                
+                if category not in geoportal_data['projetos']:
+                    geoportal_data['projetos'][category] = {}
 
-    # Process Limites de Projetos por Categoria
-    for cat_folder, cat_key in categorias:
-        cat_dir = os.path.join(projetos_dir, cat_folder)
-        if os.path.exists(cat_dir):
-            for filepath in sorted(glob.glob(os.path.join(cat_dir, '*.geojson'))):
-                raw_name = os.path.splitext(os.path.basename(filepath))[0]
-                key = f"{cat_key}__{raw_name}"
-                try:
-                    with open(filepath, 'r', encoding='utf-8') as f:
-                        data = json.load(f)
-                        data['categoria'] = cat_key
-                        geoportal_data['projetos'][key] = data
-                    print(f"[OK] [{cat_folder}] {raw_name} ({key})")
-                except Exception as e:
-                    print(f"[ERRO] Falha ao carregar {key}: {e}")
+                for gfile in sorted(geojsons):
+                    key = os.path.splitext(gfile)[0]
+                    filepath = os.path.join(root, gfile)
+                    try:
+                        with open(filepath, 'r', encoding='utf-8') as f:
+                            geoportal_data['projetos'][category][key] = json.load(f)
+                        print(f"[OK] Projeto [{category}] -> {key}")
+                    except Exception as e:
+                        print(f"[ERRO] Falha ao carregar {key} em {category}: {e}")
 
     # Process Outros Limites
     if os.path.exists(outros_dir):
@@ -50,7 +49,7 @@ def build_dataset():
             try:
                 with open(filepath, 'r', encoding='utf-8') as f:
                     geoportal_data['outros'][key] = json.load(f)
-                print(f"[OK] Outro Limite carregado: {key}")
+                print(f"[OK] Outro Limite -> {key}")
             except Exception as e:
                 print(f"[ERRO] Falha ao carregar {key}: {e}")
 
@@ -59,8 +58,10 @@ def build_dataset():
     with open(out_path, 'w', encoding='utf-8') as jsf:
         jsf.write('window.GEOPORTAL_DATA = ' + json.dumps(geoportal_data, ensure_ascii=False) + ';')
 
+    total_proj = sum(len(cat) for cat in geoportal_data['projetos'].values())
     print(f"\n[SUCESSO] geojson_data.js gerado com sucesso!")
-    print(f"Total Projetos: {len(geoportal_data['projetos'])} | Total Outros Limites: {len(geoportal_data['outros'])}")
+    print(f"Categorias: {list(geoportal_data['projetos'].keys())}")
+    print(f"Total Projetos: {total_proj} | Total Outros Limites: {len(geoportal_data['outros'])}")
 
 if __name__ == '__main__':
     build_dataset()

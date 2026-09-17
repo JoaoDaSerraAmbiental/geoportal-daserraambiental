@@ -6,52 +6,57 @@ echo ==========================================================
 echo.
 cd /d "%~dp0"
 
-REM Verifica se o Git esta instalado
+echo [1/3] Compilando arquivos GeoJSON para geojson_data.js...
+py build_data.py
+echo.
+echo [OK] Dados compilados localmente com sucesso!
+echo.
+
 where git >nul 2>&1
-if not %errorlevel%==0 (
-    echo [ERRO] Git nao esta instalado!
-    echo.
-    echo Baixe e instale em: https://git-scm.com/download/win
-    echo Depois execute este arquivo novamente.
-    echo.
-    pause
-    exit /b 1
-)
+if errorlevel 1 goto NO_GIT
 
-REM Verifica se ja e um repositorio Git
-if not exist ".git" (
-    echo [!] Pasta ainda nao conectada ao GitHub.
-    echo     Abra o GitHub Desktop e clone o repositorio primeiro.
-    echo     Depois copie este arquivo para dentro da pasta clonada.
-    pause
-    exit /b 1
-)
+if not exist ".git" goto NO_GIT_REPO
 
-REM Compila os arquivos GeoJSON para geojson_data.js
-echo Compilando alteracoes dos dados GeoJSON...
-powershell -ExecutionPolicy Bypass -File "%~dp0build_data.ps1"
-
-REM Adiciona tudo
-echo [1/3] Verificando alteracoes...
+echo [2/3] Verificando alteracoes para envio ao GitHub...
 git add -A
 
-REM Se houver alteracoes, cria o commit
 git diff --cached --quiet
-if not %errorlevel%==0 (
-    echo [2/3] Salvando alteracoes...
-    set TIMESTAMP=%date% %time:~0,5%
-    git commit -m "Atualizacao automatica - %TIMESTAMP%"
-) else (
-    echo [2/3] Arquivos locais ja preparados para envio.
+if errorlevel 1 (
+    git commit -m "Atualizacao automatica das camadas"
 )
 
-echo [3/3] Enviando para o GitHub...
+echo [3/3] Enviando alteracoes para o GitHub...
 git push origin main
 
 echo.
 echo ==========================================================
-echo  [OK] Site atualizado com sucesso!
-echo  Aguarde ~2 minutos para as mudancas aparecerem online.
+echo  [OK] Site na WEB atualizado com sucesso!
+echo  Aguarde 1 minuto para as mudancas aparecerem online.
 echo ==========================================================
 echo.
 pause
+exit /b 0
+
+:NO_GIT
+echo ==========================================================
+echo  [AVISO] Git nao instalado ou pasta nao conectada na WEB.
+echo.
+echo  O mapa LOCAL (no seu computador) ja foi atualizado!
+echo  Para enviar para a WEB a partir deste PC pessoal:
+echo    1. Baixe e instale o Git: https://git-scm.com/download/win
+echo    2. Ou use o aplicativo GitHub Desktop.
+echo ==========================================================
+echo.
+pause
+exit /b 0
+
+:NO_GIT_REPO
+echo ==========================================================
+echo  [AVISO] Pasta nao conectada ao GitHub neste PC.
+echo.
+echo  O mapa LOCAL (no seu computador) ja foi atualizado!
+echo  Para conectar este PC ao GitHub, abra o GitHub Desktop.
+echo ==========================================================
+echo.
+pause
+exit /b 0
