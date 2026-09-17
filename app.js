@@ -41,6 +41,20 @@ document.addEventListener('DOMContentLoaded', () => {
     L.control.zoom({ position: 'topright' }).addTo(map);
     L.control.scale({ imperial: false, position: 'bottomright' }).addTo(map);
 
+    // Custom Map Panes to strictly control Z-Index layer ordering:
+    // outrosPane (380) < propriedadePane (390) < projetosPane (410)
+    map.createPane('outrosPane');
+    map.getPane('outrosPane').style.zIndex = 380;
+    map.getPane('outrosPane').style.pointerEvents = 'auto';
+
+    map.createPane('propriedadePane');
+    map.getPane('propriedadePane').style.zIndex = 390;
+    map.getPane('propriedadePane').style.pointerEvents = 'auto';
+
+    map.createPane('projetosPane');
+    map.getPane('projetosPane').style.zIndex = 410;
+    map.getPane('projetosPane').style.pointerEvents = 'auto';
+
     let activeBaseMapKey = 'google-satellite';
 
     // ----------------------------------------------------------------------
@@ -177,6 +191,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Build Leaflet GeoJSON layer
         const geoLayer = L.geoJSON(data, {
+            pane: cat === 'area_propriedade' ? 'propriedadePane' : 'projetosPane',
             style: (feature) => getFeatureStyle(feature, color, 0.45, cat),
             onEachFeature: (feature, layer) => {
                 // Interactive hover style
@@ -255,6 +270,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const geoLayer = L.geoJSON(data, {
+            pane: 'outrosPane',
             style: {
                 color: color,
                 weight: key === 'limites_ughris' ? 1.8 : 1,
