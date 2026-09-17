@@ -10,6 +10,22 @@ a bundled 'geojson_data.js' file for WebGIS deployment.
 import json
 import glob
 import os
+import unicodedata
+
+def normalize_text(text):
+    if not text:
+        return ""
+    nfkd = unicodedata.normalize('NFD', text)
+    return "".join([c for c in nfkd if not unicodedata.combining(c)]).lower().strip()
+
+def get_category_key(folder_name):
+    norm = normalize_text(folder_name)
+    if "floresta" in norm:
+        return "floresta_pronta"
+    elif "propriedad" in norm or "area" in norm:
+        return "area_propriedade"
+    else:
+        return "restauracao"
 
 def build_dataset():
     base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -24,23 +40,26 @@ def build_dataset():
     # Process Limites de Projetos (supporting subfolder categories)
     if os.path.exists(projetos_dir):
         for root, dirs, files in os.walk(projetos_dir):
-            geojsons = [f for f in files if f.endswith('.geojson')]
+            geojsons = [f for f in files if f.lower().endswith('.geojson')]
             if geojsons:
                 rel_path = os.path.relpath(root, projetos_dir)
-                category = 'Geral' if rel_path == '.' else rel_path.replace('\\', '/')
-                
-                if category not in geoportal_data['projetos']:
-                    geoportal_data['projetos'][category] = {}
+                folder_name = os.path.basename(root) if rel_path != '.' else 'Restauração'
+                cat_key = get_category_key(folder_name)
 
                 for gfile in sorted(geojsons):
-                    key = os.path.splitext(gfile)[0]
+                    raw_key = os.path.splitext(gfile)[0]
+                    # Format key with category prefix
+                    key = f"{cat_key}__{raw_key}"
                     filepath = os.path.join(root, gfile)
                     try:
                         with open(filepath, 'r', encoding='utf-8') as f:
-                            geoportal_data['projetos'][category][key] = json.load(f)
-                        print(f"[OK] Projeto [{category}] -> {key}")
+                            data = json.load(f)
+                            if isinstance(data, dict):
+                                data['categoria'] = cat_key
+                            geoportal_data['projetos'][key] = data
+                        print(f"[OK] Projeto [{cat_key}] -> {key}")
                     except Exception as e:
-                        print(f"[ERRO] Falha ao carregar {key} em {category}: {e}")
+                        print(f"[ERRO] Falha ao carregar {gfile} em {folder_name}: {e}")
 
     # Process Outros Limites
     if os.path.exists(outros_dir):
@@ -58,9 +77,8 @@ def build_dataset():
     with open(out_path, 'w', encoding='utf-8') as jsf:
         jsf.write('window.GEOPORTAL_DATA = ' + json.dumps(geoportal_data, ensure_ascii=False) + ';')
 
-    total_proj = sum(len(cat) for cat in geoportal_data['projetos'].values())
+    total_proj = len(geoportal_data['projetos'])
     print(f"\n[SUCESSO] geojson_data.js gerado com sucesso!")
-    print(f"Categorias: {list(geoportal_data['projetos'].keys())}")
     print(f"Total Projetos: {total_proj} | Total Outros Limites: {len(geoportal_data['outros'])}")
 
 if __name__ == '__main__':

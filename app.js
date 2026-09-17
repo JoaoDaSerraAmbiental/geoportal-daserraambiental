@@ -848,25 +848,27 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Jump to Municipality
-    muniSelect.addEventListener('change', (e) => {
-        const muniName = e.target.value;
-        if (!muniName) return;
+    if (muniSelect) {
+        muniSelect.addEventListener('change', (e) => {
+            const muniName = e.target.value;
+            if (!muniName) return;
 
-        const outrosItem = outrosLayers['municipios_SP'];
-        if (outrosItem && outrosItem.layer) {
-            let found = false;
-            outrosItem.layer.eachLayer(l => {
-                if (l.feature && l.feature.properties && l.feature.properties.NM_MUN === muniName) {
-                    const bounds = l.getBounds();
-                    if (bounds.isValid()) {
-                        map.fitBounds(bounds, { padding: [40, 40], maxZoom: 13 });
-                        l.openPopup();
-                        found = true;
+            const outrosItem = outrosLayers['municipios_SP'];
+            if (outrosItem && outrosItem.layer) {
+                let found = false;
+                outrosItem.layer.eachLayer(l => {
+                    if (l.feature && l.feature.properties && l.feature.properties.NM_MUN === muniName) {
+                        const bounds = l.getBounds();
+                        if (bounds.isValid()) {
+                            map.fitBounds(bounds, { padding: [40, 40], maxZoom: 13 });
+                            l.openPopup();
+                            found = true;
+                        }
                     }
-                }
-            });
-        }
-    });
+                });
+            }
+        });
+    }
 
     // Toggle Sidebar Open / Collapse
     const sidebar = document.getElementById('sidebar');
