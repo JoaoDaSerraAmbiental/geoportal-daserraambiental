@@ -1009,4 +1009,186 @@ document.addEventListener('DOMContentLoaded', () => {
         content += `</div>`;
         return content;
     }
+
+    // ----------------------------------------------------------------------
+    // 6. Imagens Históricas de Satélite (Esri World Imagery Wayback 2014 - 2026)
+    // ----------------------------------------------------------------------
+    const waybackKeyReleases = [
+        { year: '2014', date: '2014-12-30', label: '30/12/2014', releaseNum: '5844', title: 'Imagens de Satélite (30/12/2014)' },
+        { year: '2015', date: '2015-12-16', label: '16/12/2015', releaseNum: '28163', title: 'Imagens de Satélite (16/12/2015)' },
+        { year: '2016', date: '2016-12-20', label: '20/12/2016', releaseNum: '18966', title: 'Imagens de Satélite (20/12/2016)' },
+        { year: '2017', date: '2017-11-16', label: '16/11/2017', releaseNum: '25521', title: 'Imagens de Satélite (16/11/2017)' },
+        { year: '2018', date: '2018-12-14', label: '14/12/2018', releaseNum: '23448', title: 'Imagens de Satélite (14/12/2018)' },
+        { year: '2019', date: '2019-12-12', label: '12/12/2019', releaseNum: '4756', title: 'Imagens de Satélite (12/12/2019)' },
+        { year: '2020', date: '2020-12-16', label: '16/12/2020', releaseNum: '29260', title: 'Imagens de Satélite (16/12/2020)' },
+        { year: '2021', date: '2021-12-21', label: '21/12/2021', releaseNum: '26120', title: 'Imagens de Satélite (21/12/2021)' },
+        { year: '2022', date: '2022-12-14', label: '14/12/2022', releaseNum: '45134', title: 'Imagens de Satélite (14/12/2022)' },
+        { year: '2023', date: '2023-12-07', label: '07/12/2023', releaseNum: '56102', title: 'Imagens de Satélite (07/12/2023)' },
+        { year: '2024', date: '2024-12-12', label: '12/12/2024', releaseNum: '16453', title: 'Imagens de Satélite (12/12/2024)' },
+        { year: '2025', date: '2025-12-18', label: '18/12/2025', releaseNum: '13192', title: 'Imagens de Satélite (18/12/2025)' },
+        { year: '2026', date: '2026-08-05', label: '05/08/2026', releaseNum: '26334', title: 'Imagens de Satélite (05/08/2026)' }
+    ];
+
+    let currentWaybackLayer = null;
+    let isHistoricalActive = false;
+
+    const btnToggleTimeline   = document.getElementById('btn-toggle-timeline');
+    const timelinePanel       = document.getElementById('timeline-floating-panel');
+    const timelineCloseBtn    = document.getElementById('timeline-close-btn');
+    const timelineRange       = document.getElementById('timeline-range');
+    const timelineSelect      = document.getElementById('timeline-select');
+    const timelineBadge       = document.getElementById('timeline-active-badge');
+    const timelineTitle       = document.getElementById('timeline-active-title');
+    const timelineSubtitle    = document.getElementById('timeline-active-subtitle');
+    const btnResetTimeline    = document.getElementById('btn-reset-timeline');
+
+    // Populate timeline select dropdown
+    function populateTimelineSelect(fullReleases = null) {
+        if (!timelineSelect) return;
+        timelineSelect.innerHTML = '';
+
+        const items = fullReleases || waybackKeyReleases;
+        items.forEach((rel) => {
+            const opt = document.createElement('option');
+            opt.value = rel.releaseNum;
+            opt.textContent = `${rel.year || rel.date.substring(0,4)} - ${rel.label || rel.date} (${rel.title || 'Wayback'})`;
+            timelineSelect.appendChild(opt);
+        });
+    }
+
+    populateTimelineSelect();
+
+    // Fetch full 196+ releases asynchronously from Esri S3 metadata
+    fetch('https://s3-us-west-2.amazonaws.com/config.maptiles.arcgis.com/waybackconfig.json')
+        .then(res => res.json())
+        .then(data => {
+            if (data && typeof data === 'object') {
+                const fullList = Object.values(data).map(item => {
+                    const rawTitle = item.itemTitle || '';
+                    const dateMatch = rawTitle.match(/\d{4}-\d{2}-\d{2}/);
+                    const dateStr = dateMatch ? dateMatch[0] : '2026-01-01';
+                    const parts = dateStr.split('-');
+                    const formatted = `${parts[2]}/${parts[1]}/${parts[0]}`;
+                    const relNum = item.itemURL.split('/tile/')[1] ? item.itemURL.split('/tile/')[1].split('/')[0] : '';
+                    return {
+                        year: parts[0],
+                        date: dateStr,
+                        label: formatted,
+                        releaseNum: relNum,
+                        title: `Wayback ${formatted}`
+                    };
+                }).filter(x => x.releaseNum).sort((a, b) => b.date.localeCompare(a.date));
+
+                if (fullList.length > 0) {
+                    populateTimelineSelect(fullList);
+                }
+            }
+        })
+        .catch(err => {
+            console.log('Utilizando lista curada de anos para o Histórico de Imagens.');
+        });
+
+    function setHistoricalSatellite(releaseNum, yearLabel, dateLabel, titleLabel) {
+        if (currentWaybackLayer && map.hasLayer(currentWaybackLayer)) {
+            map.removeLayer(currentWaybackLayer);
+        }
+
+        const tileUrl = `https://wayback.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/WMTS/1.0.0/default028mm/MapServer/tile/${releaseNum}/{z}/{y}/{x}`;
+        
+        currentWaybackLayer = L.tileLayer(tileUrl, {
+            maxZoom: 20,
+            attribution: `&copy; Esri World Imagery Wayback (${dateLabel})`
+        });
+
+        // Remove active base tile layer
+        if (baseTileLayers[activeBaseMapKey] && map.hasLayer(baseTileLayers[activeBaseMapKey])) {
+            map.removeLayer(baseTileLayers[activeBaseMapKey]);
+        }
+
+        currentWaybackLayer.addTo(map);
+        isHistoricalActive = true;
+
+        // Deselect base map cards visual state
+        document.querySelectorAll('.basemap-card').forEach(c => c.classList.remove('active'));
+
+        // Update UI displays
+        if (timelineBadge) timelineBadge.textContent = yearLabel;
+        if (timelineTitle) timelineTitle.textContent = `Satélite ${dateLabel}`;
+        if (timelineSubtitle) timelineSubtitle.textContent = `Snapshot Histórico Esri Wayback (${yearLabel})`;
+        if (btnToggleTimeline) btnToggleTimeline.classList.add('active');
+    }
+
+    function resetToDefaultSatellite() {
+        if (currentWaybackLayer && map.hasLayer(currentWaybackLayer)) {
+            map.removeLayer(currentWaybackLayer);
+        }
+        isHistoricalActive = false;
+
+        // Restore Google Satellite
+        if (baseTileLayers[activeBaseMapKey]) {
+            baseTileLayers[activeBaseMapKey].addTo(map);
+        }
+
+        // Restore basemap card active state
+        document.querySelectorAll('.basemap-card').forEach(card => {
+            if (card.dataset.basemap === activeBaseMapKey) {
+                card.classList.add('active');
+            } else {
+                card.classList.remove('active');
+            }
+        });
+
+        if (timelineBadge) timelineBadge.textContent = '2026';
+        if (timelineTitle) timelineTitle.textContent = 'Google Satélite (Atual)';
+        if (timelineSubtitle) timelineSubtitle.textContent = 'Imagens de satélite mais recentes';
+        if (btnToggleTimeline) btnToggleTimeline.classList.remove('active');
+    }
+
+    // Event Listeners for Timeline
+    if (btnToggleTimeline) {
+        btnToggleTimeline.addEventListener('click', () => {
+            if (timelinePanel) {
+                timelinePanel.classList.toggle('hidden');
+            }
+        });
+    }
+
+    if (timelineCloseBtn) {
+        timelineCloseBtn.addEventListener('click', () => {
+            if (timelinePanel) timelinePanel.classList.add('hidden');
+        });
+    }
+
+    if (timelineRange) {
+        timelineRange.addEventListener('input', (e) => {
+            const idx = parseInt(e.target.value, 10);
+            const rel = waybackKeyReleases[idx] || waybackKeyReleases[waybackKeyReleases.length - 1];
+            if (idx === waybackKeyReleases.length - 1) {
+                resetToDefaultSatellite();
+            } else {
+                setHistoricalSatellite(rel.releaseNum, rel.year, rel.label, rel.title);
+                if (timelineSelect) timelineSelect.value = rel.releaseNum;
+            }
+        });
+    }
+
+    if (timelineSelect) {
+        timelineSelect.addEventListener('change', (e) => {
+            const relNum = e.target.value;
+            if (!relNum) return;
+
+            const selectedOpt = timelineSelect.options[timelineSelect.selectedIndex];
+            const text = selectedOpt ? selectedOpt.textContent : '';
+            const yearStr = text.substring(0, 4) || 'Histórico';
+
+            setHistoricalSatellite(relNum, yearStr, text, text);
+        });
+    }
+
+    if (btnResetTimeline) {
+        btnResetTimeline.addEventListener('click', () => {
+            resetToDefaultSatellite();
+            if (timelineRange) timelineRange.value = waybackKeyReleases.length - 1;
+        });
+    }
 });

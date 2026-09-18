@@ -61,7 +61,10 @@
             </div>
             <div class="toolbar-actions" style="border-top: 1px solid var(--border-color); padding-top: 6px; margin-top: 2px;">
                 <button class="btn-tool" id="btn-toggle-status" title="Colorir camadas por Status do Projeto (Laranja = Ativo, Azul = Em finalização/Finalizado)">
-                    <i class="fa-solid fa-circle-half-stroke"></i> <span id="toggle-status-label">Status de Projetos (Ativos/Finalizados)</span>
+                    <i class="fa-solid fa-circle-half-stroke"></i> <span id="toggle-status-label">Status de Projetos</span>
+                </button>
+                <button class="btn-tool" id="btn-toggle-timeline" title="Abrir Linha do Tempo de Imagens Históricas de Satélite (2014 - 2026)">
+                    <i class="fa-solid fa-clock-rotate-left"></i> <span>Imagens Históricas</span>
                 </button>
             </div>
 
@@ -236,16 +239,47 @@
                 </div>
             </div>
 
-            <!-- Floating Top-Right Tool Buttons -->
-            <div class="map-floating-tools">
-                <button class="floating-btn" id="btn-recenter" title="Centralizar nos Projetos">
-                    <i class="fa-solid fa-location-crosshairs"></i>
-                </button>
-                <button class="floating-btn" id="btn-fullscreen" title="Modo Tela Cheia">
-                    <i class="fa-solid fa-expand"></i>
-                </button>
+            <!-- Floating Timeline Control (Imagens Históricas de Satélite 2014 - 2026) -->
+            <div class="timeline-floating-panel hidden" id="timeline-floating-panel">
+                <div class="timeline-header">
+                    <div class="timeline-title">
+                        <i class="fa-solid fa-clock-rotate-left"></i>
+                        <span>Linha do Tempo - Imagens Históricas</span>
+                    </div>
+                    <button class="timeline-close-btn" id="timeline-close-btn" title="Fechar Linha do Tempo">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+                <div class="timeline-body">
+                    <div class="timeline-status-row">
+                        <span class="timeline-badge" id="timeline-active-badge">2026</span>
+                        <div style="flex: 1;">
+                            <div style="font-size: 0.82rem; font-weight: 700; color: var(--text-primary);" id="timeline-active-title">Google Satélite (Atual)</div>
+                            <div style="font-size: 0.7rem; color: var(--text-muted);" id="timeline-active-subtitle">Imagens de satélite mais recentes</div>
+                        </div>
+                    </div>
+                    <div class="timeline-slider-container">
+                        <input type="range" class="timeline-range" id="timeline-range" min="0" max="12" step="1" value="12">
+                        <div class="timeline-marks">
+                            <span>2014</span>
+                            <span>2016</span>
+                            <span>2018</span>
+                            <span>2020</span>
+                            <span>2022</span>
+                            <span>2024</span>
+                            <span>2026</span>
+                        </div>
+                    </div>
+                    <div class="timeline-controls-row">
+                        <select id="timeline-select" class="timeline-select" title="Selecione a data exata da imagem armazenada">
+                            <!-- Populated dynamically via app.js -->
+                        </select>
+                        <button class="btn-tool active" id="btn-reset-timeline" title="Voltar para a imagem padrão do Google Satélite">
+                            <i class="fa-solid fa-rotate-left"></i> Atual
+                        </button>
+                    </div>
+                </div>
             </div>
-
 
         </main>
     </div>
