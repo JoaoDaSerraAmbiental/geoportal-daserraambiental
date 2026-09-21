@@ -249,15 +249,11 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     });
 
-    // Helper function to verify if current map zoom is at the 5km scale
-    function isMuniZoom5km() {
-        const scaleEl = document.querySelector('.leaflet-control-scale-line');
-        if (scaleEl && scaleEl.textContent) {
-            const txt = scaleEl.textContent.trim();
-            if (txt === '5 km') return true;
-        }
-        const z = Math.round(map.getZoom());
-        return z === 11;
+    // Helper function to verify if current map zoom/scale allows municipality info balloon
+    // Allowed range: height/scale from 3km down to 100m (Zoom 12 to 17)
+    function isMuniZoomAllowed() {
+        const z = map.getZoom();
+        return z >= 11.5 && z <= 17.5;
     }
 
     // Load Outros Limites (Municípios SP & UGRHIs)
@@ -297,7 +293,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 layer.on({
                     mouseover: (e) => {
                         if (isMuni) {
-                            if (isMuniZoom5km()) {
+                            if (isMuniZoomAllowed()) {
                                 e.target.setStyle({ weight: 2.2, color: '#38bdf8', fillOpacity: 0.12 });
                             }
                         } else {
@@ -358,19 +354,19 @@ document.addEventListener('DOMContentLoaded', () => {
                         className: 'muni-custom-tooltip'
                     });
 
-                    // Guard openTooltip so it ONLY opens when zoom is 5km
+                    // Guard openTooltip so it ONLY opens when zoom is between 3km and 100m
                     const origOpenTooltip = layer.openTooltip;
                     layer.openTooltip = function() {
-                        if (!isMuniZoom5km()) return this;
+                        if (!isMuniZoomAllowed()) return this;
                         return origOpenTooltip.apply(this, arguments);
                     };
 
                     layer.bindPopup(`<strong>Município: ${props.NM_MUN}</strong><br>Área: ${areaKm} (${areaHa})<br>Bacia (UGRHI): ${ugrhiDesc}<br>Região Hidrográfica: ${regiaoDesc}`);
 
-                    // Guard openPopup so it ONLY opens when zoom is 5km
+                    // Guard openPopup so it ONLY opens when zoom is between 3km and 100m
                     const origOpenPopup = layer.openPopup;
                     layer.openPopup = function() {
-                        if (!isMuniZoom5km()) return this;
+                        if (!isMuniZoomAllowed()) return this;
                         return origOpenPopup.apply(this, arguments);
                     };
                 }
@@ -392,9 +388,9 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     });
 
-    // Close municipality tooltips/popups and reset highlight when zooming outside 5km scale
+    // Close municipality tooltips/popups and reset highlight when zooming outside allowed scale
     map.on('zoomend', () => {
-        if (!isMuniZoom5km()) {
+        if (!isMuniZoomAllowed()) {
             map.closeTooltip();
             map.closePopup();
             if (outrosLayers['municipios_SP'] && outrosLayers['municipios_SP'].layer) {
