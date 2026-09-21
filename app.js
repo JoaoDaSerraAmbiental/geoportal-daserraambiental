@@ -42,7 +42,11 @@ document.addEventListener('DOMContentLoaded', () => {
     L.control.scale({ imperial: false, position: 'bottomright' }).addTo(map);
 
     // Custom Map Panes to strictly control Z-Index layer ordering:
-    // outrosPane (380) < propriedadePane (390) < projetosPane (410)
+    // muniPane (375) < outrosPane (380) < propriedadePane (390) < projetosPane (410)
+    map.createPane('muniPane');
+    map.getPane('muniPane').style.zIndex = 375;
+    map.getPane('muniPane').style.pointerEvents = 'none';
+
     map.createPane('outrosPane');
     map.getPane('outrosPane').style.zIndex = 380;
     map.getPane('outrosPane').style.pointerEvents = 'auto';
@@ -281,7 +285,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const isMuni = (key === 'municipios_SP');
 
         const geoLayer = L.geoJSON(data, {
-            pane: 'outrosPane',
+            pane: isMuni ? 'muniPane' : 'outrosPane',
             style: {
                 color: color,
                 weight: isMuni ? 1 : (key === 'limites_ughris' ? 1.8 : 1),
@@ -388,8 +392,18 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     });
 
+    // Control pointer-events on muniPane so clicks/drags pass through cleanly when zoom is outside allowed range
+    function updateMuniPointerEvents() {
+        const pane = map.getPane('muniPane');
+        if (pane) {
+            pane.style.pointerEvents = isMuniZoomAllowed() ? 'auto' : 'none';
+        }
+    }
+    updateMuniPointerEvents();
+
     // Close municipality tooltips/popups and reset highlight when zooming outside allowed scale
     map.on('zoomend', () => {
+        updateMuniPointerEvents();
         if (!isMuniZoomAllowed()) {
             map.closeTooltip();
             map.closePopup();

@@ -739,6 +739,24 @@ body, html {
     font-weight: 700;
 }
 
+/* Prevent Chrome / Edge focus outline boxes on Leaflet SVG paths, map and panes */
+.leaflet-container,
+.leaflet-container:focus,
+.leaflet-container:focus-visible,
+.leaflet-pane,
+.leaflet-pane svg,
+.leaflet-pane path,
+.leaflet-interactive,
+.leaflet-interactive:focus,
+.leaflet-interactive:focus-visible,
+path.leaflet-interactive,
+path.leaflet-interactive:focus,
+path.leaflet-interactive:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
+    -webkit-tap-highlight-color: transparent !important;
+}
+
 /* Position Leaflet controls cleanly at bottom-right */
 .leaflet-bottom.leaflet-right {
     z-index: 998;
