@@ -269,9 +269,9 @@ document.addEventListener('DOMContentLoaded', () => {
         let subtitle = 'Camada de Limite';
 
         if (key === 'municipios_SP') {
-            layerName = 'Municípios de São Paulo (IBGE)';
+            layerName = 'Municípios';
             color = '#475569'; // Cinza escuro discreto para evitar poluição visual
-            subtitle = '645 Municípios';
+            subtitle = 'Limites Municipais';
         } else if (key === 'limites_ughris') {
             layerName = 'UGRHIs (Bacias Hidrográficas SP)';
             color = '#0284c7';
