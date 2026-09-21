@@ -250,10 +250,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Helper function to verify if current map zoom/scale allows municipality info balloon
-    // Allowed range: height/scale from 3km down to 100m (Zoom 12 to 17)
+    // Allowed range: height/scale from 3km down to 300m (Zoom 12 to 15)
     function isMuniZoomAllowed() {
         const z = map.getZoom();
-        return z >= 11.5 && z <= 17.5;
+        return z >= 11.5 && z <= 15.5;
     }
 
     // Load Outros Limites (Municípios SP & UGRHIs)
