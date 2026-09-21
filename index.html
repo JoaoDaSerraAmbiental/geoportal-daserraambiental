@@ -19,7 +19,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
     
     <!-- Custom Styles -->
-    <link rel="stylesheet" href="styles.css?v=5">
+    <link rel="stylesheet" href="styles.css?v=6">
 </head>
 <body>
     <div id="app-container">
@@ -161,7 +161,7 @@
             
             <!-- Floating Top-Right Tool Buttons -->
             <div class="map-floating-tools">
-                <button class="floating-btn" id="btn-toggle-timeline" title="Imagens Históricas de Satélite (2014 - 2026)">
+                <button class="floating-btn" id="btn-toggle-timeline" title="Imagens Históricas de Satélite e Ortofotos (2007 - 2026)">
                     <i class="fa-solid fa-clock-rotate-left"></i>
                 </button>
                 <button class="floating-btn" id="btn-recenter" title="Centralizar nos Projetos">
@@ -269,15 +269,16 @@
                         </div>
                     </div>
                     <div class="timeline-slider-container">
-                        <input type="range" class="timeline-range" id="timeline-range" min="0" max="12" step="1" value="12">
+                        <input type="range" class="timeline-range" id="timeline-range" min="0" max="16" step="1" value="16">
                         <div class="timeline-marks">
+                            <span>2007</span>
+                            <span>2010</span>
                             <span>2014</span>
-                            <span>2016</span>
-                            <span>2018</span>
+                            <span>2017</span>
                             <span>2020</span>
-                            <span>2022</span>
-                            <span>2024</span>
+                            <span>2023</span>
                             <span>2026</span>
+                            <span>Atual</span>
                         </div>
                     </div>
                     <div class="timeline-controls-row">
@@ -301,9 +302,12 @@
     <script src="https://unpkg.com/@turf/turf@6.5.0/turf.min.js"></script>
 
     <!-- Embedded GeoJSON Data Package -->
-    <script src="geojson_data.js?v=5"></script>
+    <script src="geojson_data.js?v=6"></script>
+
+    <!-- Municipal Basins Data Package -->
+    <script src="municipios_bacias_data.js?v=6"></script>
 
     <!-- Custom Application Logic -->
-    <script src="app.js?v=5"></script>
+    <script src="app.js?v=6"></script>
 </body>
 </html>

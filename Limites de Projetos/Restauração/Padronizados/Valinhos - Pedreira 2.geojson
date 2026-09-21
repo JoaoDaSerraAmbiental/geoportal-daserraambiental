@@ -1,0 +1,9 @@
+{
+"type": "FeatureCollection",
+"name": "Valinhos - Pedreira 2",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"xy_coordinate_resolution": 1e-15,
+"features": [
+{"type":"Feature","properties":{"Área (ha)":0.092771795647166436,"Nome do Projeto":null,"Propriedade":null,"Tipo":null,"Ano de Implantação":null,"Metodologia de Restauração":null,"Monitoramento":null,"Município":null,"UGRHI":null,"Região Hidrográfica":null,"Status do Projeto":null,"Fotos do Projeto":null},"geometry":{"type":"Polygon","coordinates":[[[-46.968473939533169,-22.984782841768801,0.0],[-46.968636500280773,-22.984868160767999,0.0],[-46.968721598746157,-22.984923851611541,0.0],[-46.96877147660642,-22.984993361635091,0.0],[-46.968826776427854,-22.985112015743091,0.0],[-46.968837208966583,-22.985213543973241,0.0],[-46.96858078270381,-22.98527733624211,0.0],[-46.96862881808309,-22.985170564905911,0.0],[-46.968602547592653,-22.985028765601079,0.0],[-46.968472838017853,-22.984848362441991,0.0],[-46.968473939533169,-22.984782841768801,0.0]]]}}
+]
+}

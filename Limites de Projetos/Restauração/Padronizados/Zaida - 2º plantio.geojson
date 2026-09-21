@@ -1,0 +1,10 @@
+{
+"type": "FeatureCollection",
+"name": "Zaida - 2º plantio",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"xy_coordinate_resolution": 1e-15,
+"features": [
+{"type":"Feature","properties":{"Área (ha)":0.15657406237572433,"Nome do Projeto":null,"Propriedade":null,"Tipo":null,"Ano de Implantação":null,"Metodologia de Restauração":null,"Monitoramento":null,"Município":null,"UGRHI":null,"Região Hidrográfica":null,"Status do Projeto":null,"Fotos do Projeto":null},"geometry":{"type":"Polygon","coordinates":[[[-46.311717379481287,-22.90470864264735,0.0],[-46.311450778894709,-22.905207135695321,0.0],[-46.311237546313507,-22.905096825989641,0.0],[-46.311504666788593,-22.904589131056611,0.0],[-46.311717379481287,-22.90470864264735,0.0]]]}},
+{"type":"Feature","properties":{"Área (ha)":0.14489429289456457,"Nome do Projeto":null,"Propriedade":null,"Tipo":null,"Ano de Implantação":null,"Metodologia de Restauração":null,"Monitoramento":null,"Município":null,"UGRHI":null,"Região Hidrográfica":null,"Status do Projeto":null,"Fotos do Projeto":null},"geometry":{"type":"Polygon","coordinates":[[[-46.311719080314873,-22.903297577237129,0.0],[-46.311860524773117,-22.903299207444562,0.0],[-46.3119215472272,-22.90354455428697,0.0],[-46.311874672878282,-22.903755743576589,0.0],[-46.311738698667369,-22.903955853017969,0.0],[-46.311513454904251,-22.90395648361012,0.0],[-46.311685066283879,-22.90367211832147,0.0],[-46.311753296702889,-22.903538112301369,0.0],[-46.311719080314873,-22.903297577237129,0.0]]]}}
+]
+}

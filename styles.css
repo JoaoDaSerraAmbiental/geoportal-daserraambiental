@@ -1115,3 +1115,87 @@ body, html {
     border-color: var(--accent-color);
 }
 
+/* Custom Tooltip for Municípios SP */
+.leaflet-tooltip.muni-custom-tooltip {
+    background: rgba(15, 23, 42, 0.95) !important;
+    color: #f8fafc !important;
+    border: 1px solid rgba(255, 255, 255, 0.18) !important;
+    border-radius: 10px !important;
+    padding: 10px 14px !important;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.3) !important;
+    backdrop-filter: blur(10px);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+    pointer-events: none;
+    min-width: 240px;
+    max-width: 360px;
+    white-space: normal !important;
+}
+
+.leaflet-tooltip.muni-custom-tooltip::before {
+    border-top-color: rgba(15, 23, 42, 0.95) !important;
+}
+
+.muni-hover-header {
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: #ffffff;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+    padding-bottom: 6px;
+    margin-bottom: 7px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.muni-hover-header i {
+    color: #38bdf8;
+    font-size: 0.9rem;
+}
+
+.muni-hover-body {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.muni-hover-row {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.muni-hover-label {
+    color: #94a3b8;
+    font-weight: 600;
+    font-size: 0.70rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.muni-hover-label i {
+    color: #64748b;
+    font-size: 0.75rem;
+}
+
+.muni-hover-val {
+    color: #f1f5f9;
+    font-size: 0.81rem;
+    font-weight: 600;
+    line-height: 1.35;
+}
+
+.muni-hover-sub {
+    color: #94a3b8;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.muni-hover-val.bacia-highlight {
+    color: #38bdf8;
+    font-weight: 700;
+}
+
+

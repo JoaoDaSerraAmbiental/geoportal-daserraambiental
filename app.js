@@ -259,7 +259,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (key === 'municipios_SP') {
             layerName = 'Municípios de São Paulo (IBGE)';
-            color = '#475569';
+            color = '#ffffff';
             subtitle = '645 Municípios';
         } else if (key === 'limites_ughris') {
             layerName = 'UGRHIs (Bacias Hidrográficas SP)';
@@ -271,19 +271,25 @@ document.addEventListener('DOMContentLoaded', () => {
             subtitle = 'Regiões Hidrográficas Nacionais';
         }
 
+        const isMuni = (key === 'municipios_SP');
+
         const geoLayer = L.geoJSON(data, {
             pane: 'outrosPane',
             style: {
                 color: color,
-                weight: key === 'limites_ughris' ? 1.8 : 1,
-                opacity: 0.8,
+                weight: isMuni ? 1.2 : (key === 'limites_ughris' ? 1.8 : 1),
+                opacity: isMuni ? 0.95 : 0.8,
                 fillColor: color,
-                fillOpacity: 0.08
+                fillOpacity: isMuni ? 0.01 : 0.08
             },
             onEachFeature: (feature, layer) => {
                 layer.on({
                     mouseover: (e) => {
-                        e.target.setStyle({ weight: 3, color: '#0f172a', fillOpacity: 0.25 });
+                        if (isMuni) {
+                            e.target.setStyle({ weight: 2.8, color: '#ffffff', fillOpacity: 0.18 });
+                        } else {
+                            e.target.setStyle({ weight: 3, color: '#0f172a', fillOpacity: 0.25 });
+                        }
                     },
                     mouseout: (e) => {
                         geoLayer.resetStyle(e.target);
@@ -301,8 +307,45 @@ document.addEventListener('DOMContentLoaded', () => {
                             <div class="popup-row"><span class="popup-label">Área:</span> <span class="popup-value">${props.rhi_ar_km2 ? Number(props.rhi_ar_km2).toLocaleString('pt-BR', {maximumFractionDigits:0}) + ' km²' : '-'}</span></div>
                         </div>
                     `);
-                } else if (props.NM_MUN) {
-                    layer.bindPopup(`<strong>Município: ${props.NM_MUN}</strong><br>Área: ${props.AREA_KM2 || '-'} km²`);
+                } else if (isMuni && props.NM_MUN) {
+                    const muniInfo = (window.MUNICIPIOS_BACIAS && window.MUNICIPIOS_BACIAS[props.NM_MUN]) || {};
+                    const areaVal = props.AREA_KM2 || muniInfo.area_km2;
+                    const areaKm = areaVal ? Number(areaVal).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 2 }) + ' km²' : '-';
+                    const areaHa = areaVal ? Number(areaVal * 100).toLocaleString('pt-BR', { maximumFractionDigits: 0 }) + ' ha' : '-';
+                    const ugrhiDesc = muniInfo.ugrhi_str || 'UGRHI 05 - Piracicaba/Capivari/Jundiaí';
+                    const regiaoDesc = muniInfo.regiao_ana || 'Paraná';
+
+                    const tooltipHtml = `
+                        <div class="muni-hover-card">
+                            <div class="muni-hover-header">
+                                <i class="fa-solid fa-landmark"></i>
+                                <span>${props.NM_MUN}</span>
+                            </div>
+                            <div class="muni-hover-body">
+                                <div class="muni-hover-row">
+                                    <span class="muni-hover-label"><i class="fa-solid fa-chart-area"></i> Área Territorial:</span>
+                                    <strong class="muni-hover-val">${areaKm} <span class="muni-hover-sub">(${areaHa})</span></strong>
+                                </div>
+                                <div class="muni-hover-row">
+                                    <span class="muni-hover-label"><i class="fa-solid fa-water"></i> Bacia Hidrográfica (UGRHI):</span>
+                                    <strong class="muni-hover-val bacia-highlight">${ugrhiDesc}</strong>
+                                </div>
+                                <div class="muni-hover-row">
+                                    <span class="muni-hover-label"><i class="fa-solid fa-globe"></i> Região Hidrográfica:</span>
+                                    <strong class="muni-hover-val">${regiaoDesc}</strong>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+
+                    layer.bindTooltip(tooltipHtml, {
+                        sticky: true,
+                        direction: 'top',
+                        offset: [0, -10],
+                        className: 'muni-custom-tooltip'
+                    });
+
+                    layer.bindPopup(`<strong>Município: ${props.NM_MUN}</strong><br>Área: ${areaKm} (${areaHa})<br>Bacia (UGRHI): ${ugrhiDesc}<br>Região Hidrográfica: ${regiaoDesc}`);
                 }
             }
         });
@@ -434,7 +477,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="layer-main-row">
                 <div class="layer-left">
                     <input type="checkbox" class="custom-checkbox outros-toggle" data-key="${key}" ${item.visible ? 'checked' : ''}>
-                    <div class="color-badge" style="background-color: ${item.color};"></div>
+                    <div class="color-badge" style="background-color: ${item.color}; ${item.color.toLowerCase() === '#ffffff' ? 'border: 1.5px solid #94a3b8;' : ''}"></div>
                     <div>
                         <div class="layer-name" title="${item.name}">${item.name}</div>
                         <div class="layer-subtitle">${item.subtitle}</div>
@@ -1039,22 +1082,54 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ----------------------------------------------------------------------
-    // 6. Imagens Históricas de Satélite (Esri World Imagery Wayback 2014 - 2026)
+    // 6. Imagens Históricas de Satélite e Ortofotos (2007 - 2026)
     // ----------------------------------------------------------------------
-    const waybackKeyReleases = [
-        { year: '2014', date: '2014-12-30', label: '30/12/2014', releaseNum: '5844', title: 'Imagens de Satélite (30/12/2014)' },
-        { year: '2015', date: '2015-12-16', label: '16/12/2015', releaseNum: '28163', title: 'Imagens de Satélite (16/12/2015)' },
-        { year: '2016', date: '2016-12-20', label: '20/12/2016', releaseNum: '18966', title: 'Imagens de Satélite (20/12/2016)' },
-        { year: '2017', date: '2017-11-16', label: '16/11/2017', releaseNum: '25521', title: 'Imagens de Satélite (16/11/2017)' },
-        { year: '2018', date: '2018-12-14', label: '14/12/2018', releaseNum: '23448', title: 'Imagens de Satélite (14/12/2018)' },
-        { year: '2019', date: '2019-12-12', label: '12/12/2019', releaseNum: '4756', title: 'Imagens de Satélite (12/12/2019)' },
-        { year: '2020', date: '2020-12-16', label: '16/12/2020', releaseNum: '29260', title: 'Imagens de Satélite (16/12/2020)' },
-        { year: '2021', date: '2021-12-21', label: '21/12/2021', releaseNum: '26120', title: 'Imagens de Satélite (21/12/2021)' },
-        { year: '2022', date: '2022-12-14', label: '14/12/2022', releaseNum: '45134', title: 'Imagens de Satélite (14/12/2022)' },
-        { year: '2023', date: '2023-12-07', label: '07/12/2023', releaseNum: '56102', title: 'Imagens de Satélite (07/12/2023)' },
-        { year: '2024', date: '2024-12-12', label: '12/12/2024', releaseNum: '16453', title: 'Imagens de Satélite (12/12/2024)' },
-        { year: '2025', date: '2025-12-18', label: '18/12/2025', releaseNum: '13192', title: 'Imagens de Satélite (18/12/2025)' },
-        { year: '2026', date: '2026-08-05', label: '05/08/2026', releaseNum: '26334', title: 'Imagens de Satélite (05/08/2026)' }
+    const historicalSources = [
+        {
+            type: 'wms',
+            year: '2007',
+            date: '2007-06-01',
+            label: '2007 - Ortofoto CDHU Bragantina',
+            title: 'Ortofoto Aerofotogramétrica (2007 - CDHU)',
+            subtitle: 'Aerolevantamento oficial CDHU (Região Bragantina / Joanópolis)',
+            wmsLayer: 'datageoimg:ORTOFOTOS_CDHU_BRAGANTINA_2007',
+            wmsUrl: 'https://datageo.ambiente.sp.gov.br/geoimage/datageoimg/ows',
+            attribution: '&copy; CDHU / DataGEO (2007)'
+        },
+        {
+            type: 'wms',
+            year: '2010',
+            date: '2010-08-01',
+            label: '2010 - Ortofoto EMPLASA Estado SP',
+            title: 'Ortofoto Aerofotogramétrica (2010 - EMPLASA)',
+            subtitle: 'Aerolevantamento oficial do Estado de São Paulo',
+            wmsLayer: 'datageoimg:ORTOFOTOS_EMPLASA_2010',
+            wmsUrl: 'https://datageo.ambiente.sp.gov.br/geoimage/datageoimg/ows',
+            attribution: '&copy; EMPLASA / DataGEO (2010)'
+        },
+        {
+            type: 'wayback',
+            year: '2011',
+            date: '2011-09-27',
+            label: '2011 - Satélite WorldView-2 (27/09/2011)',
+            title: 'Satélite DigitalGlobe WorldView-2 (27/09/2011 - 50cm)',
+            subtitle: 'Sobrevoo de satélite de altíssima resolução DigitalGlobe',
+            releaseNum: '10',
+            attribution: '&copy; DigitalGlobe WorldView-2 / Esri'
+        },
+        { type: 'wayback', year: '2014', date: '2014-12-30', label: '2014 - Satélite (30/12/2014)', releaseNum: '5844', title: 'Imagens de Satélite (30/12/2014)', subtitle: 'Snapshot Histórico Esri Wayback (2014)' },
+        { type: 'wayback', year: '2015', date: '2015-12-16', label: '2015 - Satélite (16/12/2015)', releaseNum: '28163', title: 'Imagens de Satélite (16/12/2015)', subtitle: 'Snapshot Histórico Esri Wayback (2015)' },
+        { type: 'wayback', year: '2016', date: '2016-12-20', label: '2016 - Satélite (20/12/2016)', releaseNum: '18966', title: 'Imagens de Satélite (20/12/2016)', subtitle: 'Snapshot Histórico Esri Wayback (2016)' },
+        { type: 'wayback', year: '2017', date: '2017-11-16', label: '2017 - Satélite (16/11/2017)', releaseNum: '25521', title: 'Imagens de Satélite (16/11/2017)', subtitle: 'Snapshot Histórico Esri Wayback (2017)' },
+        { type: 'wayback', year: '2018', date: '2018-12-14', label: '2018 - Satélite (14/12/2018)', releaseNum: '23448', title: 'Imagens de Satélite (14/12/2018)', subtitle: 'Snapshot Histórico Esri Wayback (2018)' },
+        { type: 'wayback', year: '2019', date: '2019-12-12', label: '2019 - Satélite (12/12/2019)', releaseNum: '4756', title: 'Imagens de Satélite (12/12/2019)', subtitle: 'Snapshot Histórico Esri Wayback (2019)' },
+        { type: 'wayback', year: '2020', date: '2020-12-16', label: '2020 - Satélite (16/12/2020)', releaseNum: '29260', title: 'Imagens de Satélite (16/12/2020)', subtitle: 'Snapshot Histórico Esri Wayback (2020)' },
+        { type: 'wayback', year: '2021', date: '2021-12-21', label: '2021 - Satélite (21/12/2021)', releaseNum: '26120', title: 'Imagens de Satélite (21/12/2021)', subtitle: 'Snapshot Histórico Esri Wayback (2021)' },
+        { type: 'wayback', year: '2022', date: '2022-12-14', label: '2022 - Satélite (14/12/2022)', releaseNum: '45134', title: 'Imagens de Satélite (14/12/2022)', subtitle: 'Snapshot Histórico Esri Wayback (2022)' },
+        { type: 'wayback', year: '2023', date: '2023-12-07', label: '2023 - Satélite (07/12/2023)', releaseNum: '56102', title: 'Imagens de Satélite (07/12/2023)', subtitle: 'Snapshot Histórico Esri Wayback (2023)' },
+        { type: 'wayback', year: '2024', date: '2024-12-12', label: '2024 - Satélite (12/12/2024)', releaseNum: '16453', title: 'Imagens de Satélite (12/12/2024)', subtitle: 'Snapshot Histórico Esri Wayback (2024)' },
+        { type: 'wayback', year: '2025', date: '2025-12-18', label: '2025 - Satélite (18/12/2025)', releaseNum: '13192', title: 'Imagens de Satélite (18/12/2025)', subtitle: 'Snapshot Histórico Esri Wayback (2025)' },
+        { type: 'wayback', year: '2026', date: '2026-08-05', label: '2026 - Satélite (05/08/2026)', releaseNum: '26334', title: 'Imagens de Satélite (05/08/2026)', subtitle: 'Snapshot Histórico Esri Wayback (2026)' }
     ];
 
     const btnToggleTimeline   = document.getElementById('btn-toggle-timeline');
@@ -1068,63 +1143,49 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnResetTimeline    = document.getElementById('btn-reset-timeline');
 
     // Populate timeline select dropdown
-    function populateTimelineSelect(fullReleases = null) {
+    function populateTimelineSelect() {
         if (!timelineSelect) return;
         timelineSelect.innerHTML = '';
 
-        const items = fullReleases || waybackKeyReleases;
-        items.forEach((rel) => {
+        historicalSources.forEach((src, idx) => {
             const opt = document.createElement('option');
-            opt.value = rel.releaseNum;
-            opt.textContent = `${rel.year || rel.date.substring(0,4)} - ${rel.label || rel.date} (${rel.title || 'Wayback'})`;
+            opt.value = idx;
+            opt.textContent = src.label;
             timelineSelect.appendChild(opt);
         });
+
+        // Add option for Atual
+        const optAtual = document.createElement('option');
+        optAtual.value = historicalSources.length;
+        optAtual.textContent = '2026 - Google Satélite (Atual)';
+        timelineSelect.appendChild(optAtual);
+        timelineSelect.value = historicalSources.length;
     }
 
     populateTimelineSelect();
 
-    // Fetch full 196+ releases asynchronously from Esri S3 metadata
-    fetch('https://s3-us-west-2.amazonaws.com/config.maptiles.arcgis.com/waybackconfig.json')
-        .then(res => res.json())
-        .then(data => {
-            if (data && typeof data === 'object') {
-                const fullList = Object.values(data).map(item => {
-                    const rawTitle = item.itemTitle || '';
-                    const dateMatch = rawTitle.match(/\d{4}-\d{2}-\d{2}/);
-                    const dateStr = dateMatch ? dateMatch[0] : '2026-01-01';
-                    const parts = dateStr.split('-');
-                    const formatted = `${parts[2]}/${parts[1]}/${parts[0]}`;
-                    const relNum = item.itemURL.split('/tile/')[1] ? item.itemURL.split('/tile/')[1].split('/')[0] : '';
-                    return {
-                        year: parts[0],
-                        date: dateStr,
-                        label: formatted,
-                        releaseNum: relNum,
-                        title: `Wayback ${formatted}`
-                    };
-                }).filter(x => x.releaseNum).sort((a, b) => b.date.localeCompare(a.date));
-
-                if (fullList.length > 0) {
-                    populateTimelineSelect(fullList);
-                }
-            }
-        })
-        .catch(err => {
-            console.log('Utilizando lista curada de anos para o Histórico de Imagens.');
-        });
-
-    function setHistoricalSatellite(releaseNum, yearLabel, dateLabel, titleLabel) {
+    function setHistoricalLayer(item) {
         if (currentWaybackLayer && map.hasLayer(currentWaybackLayer)) {
             map.removeLayer(currentWaybackLayer);
         }
 
-        const tileUrl = `https://wayback.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/WMTS/1.0.0/default028mm/MapServer/tile/${releaseNum}/{z}/{y}/{x}`;
-        
-        currentWaybackLayer = L.tileLayer(tileUrl, {
-            maxZoom: 20,
-            maxNativeZoom: 18,
-            attribution: `&copy; Esri World Imagery Wayback (${dateLabel})`
-        });
+        if (item.type === 'wms') {
+            currentWaybackLayer = L.tileLayer.wms(item.wmsUrl, {
+                layers: item.wmsLayer,
+                format: 'image/jpeg',
+                transparent: false,
+                version: '1.1.1',
+                maxZoom: 20,
+                attribution: item.attribution
+            });
+        } else {
+            const tileUrl = `https://wayback.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/WMTS/1.0.0/default028mm/MapServer/tile/${item.releaseNum}/{z}/{y}/{x}`;
+            currentWaybackLayer = L.tileLayer(tileUrl, {
+                maxZoom: 20,
+                maxNativeZoom: 18,
+                attribution: item.attribution || `&copy; Esri World Imagery Wayback (${item.label})`
+            });
+        }
 
         // Remove active base tile layer
         if (baseTileLayers[activeBaseMapKey] && map.hasLayer(baseTileLayers[activeBaseMapKey])) {
@@ -1138,9 +1199,9 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.basemap-card').forEach(c => c.classList.remove('active'));
 
         // Update UI displays
-        if (timelineBadge) timelineBadge.textContent = yearLabel;
-        if (timelineTitle) timelineTitle.textContent = `Satélite ${dateLabel}`;
-        if (timelineSubtitle) timelineSubtitle.textContent = `Snapshot Histórico Esri Wayback (${yearLabel})`;
+        if (timelineBadge) timelineBadge.textContent = item.year;
+        if (timelineTitle) timelineTitle.textContent = item.title;
+        if (timelineSubtitle) timelineSubtitle.textContent = item.subtitle;
         if (btnToggleTimeline) btnToggleTimeline.classList.add('active');
     }
 
@@ -1167,7 +1228,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (timelineBadge) timelineBadge.textContent = '2026';
         if (timelineTitle) timelineTitle.textContent = 'Google Satélite (Atual)';
         if (timelineSubtitle) timelineSubtitle.textContent = 'Imagens de satélite mais recentes';
-        if (timelineRange) timelineRange.value = waybackKeyReleases.length - 1;
+        if (timelineRange) timelineRange.value = historicalSources.length;
+        if (timelineSelect) timelineSelect.value = historicalSources.length;
         if (btnToggleTimeline && (!timelinePanel || timelinePanel.classList.contains('hidden'))) {
             btnToggleTimeline.classList.remove('active');
         }
@@ -1195,33 +1257,37 @@ document.addEventListener('DOMContentLoaded', () => {
     if (timelineRange) {
         timelineRange.addEventListener('input', (e) => {
             const idx = parseInt(e.target.value, 10);
-            const rel = waybackKeyReleases[idx] || waybackKeyReleases[waybackKeyReleases.length - 1];
-            if (idx === waybackKeyReleases.length - 1) {
+            if (idx >= historicalSources.length) {
                 resetToDefaultSatellite();
+                if (timelineSelect) timelineSelect.value = historicalSources.length;
             } else {
-                setHistoricalSatellite(rel.releaseNum, rel.year, rel.label, rel.title);
-                if (timelineSelect) timelineSelect.value = rel.releaseNum;
+                const item = historicalSources[idx];
+                if (item) {
+                    setHistoricalLayer(item);
+                    if (timelineSelect) timelineSelect.value = idx;
+                }
             }
         });
     }
 
     if (timelineSelect) {
         timelineSelect.addEventListener('change', (e) => {
-            const relNum = e.target.value;
-            if (!relNum) return;
-
-            const selectedOpt = timelineSelect.options[timelineSelect.selectedIndex];
-            const text = selectedOpt ? selectedOpt.textContent : '';
-            const yearStr = text.substring(0, 4) || 'Histórico';
-
-            setHistoricalSatellite(relNum, yearStr, text, text);
+            const idx = parseInt(e.target.value, 10);
+            if (idx >= historicalSources.length) {
+                resetToDefaultSatellite();
+            } else {
+                const item = historicalSources[idx];
+                if (item) setHistoricalLayer(item);
+            }
+            if (timelineRange) timelineRange.value = idx;
         });
     }
 
     if (btnResetTimeline) {
         btnResetTimeline.addEventListener('click', () => {
             resetToDefaultSatellite();
-            if (timelineRange) timelineRange.value = waybackKeyReleases.length - 1;
+            if (timelineRange) timelineRange.value = historicalSources.length;
+            if (timelineSelect) timelineSelect.value = historicalSources.length;
         });
     }
 });
