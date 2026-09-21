@@ -1,0 +1,8 @@
+{
+"type": "FeatureCollection",
+"name": "Fabrica_colchões Atibaia 2016",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{"type":"Feature","properties":{"id":null,"Name":"Fabrica_colchões_2016","description":null,"timestamp":null,"begin":null,"end":null,"altitudeMode":null,"tessellate":1,"extrude":0,"visibility":-1,"drawOrder":null,"icon":null},"geometry":{"type":"Polygon","coordinates":[[[-46.49460348575893,-23.112864653522831,0.0],[-46.494375215643728,-23.11306330495831,0.0],[-46.493077130483208,-23.112121820824949,0.0],[-46.493357094642377,-23.111914104942858,0.0],[-46.49460348575893,-23.112864653522831,0.0]]]}}
+]
+}
