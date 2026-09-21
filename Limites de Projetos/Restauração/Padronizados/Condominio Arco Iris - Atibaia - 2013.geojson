@@ -1,9 +1,0 @@
-{
-"type": "FeatureCollection",
-"name": "Condominio Arco Iris - Atibaia - 2013",
-"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
-"xy_coordinate_resolution": 1e-15,
-"features": [
-{"type":"Feature","properties":{"Área (ha)":0.076452787364274258,"Nome do Projeto":null,"Propriedade":null,"Tipo":null,"Ano de Implantação":null,"Metodologia de Restauração":null,"Monitoramento":null,"Município":null,"UGRHI":null,"Região Hidrográfica":null,"Status do Projeto":null,"Fotos do Projeto":null},"geometry":{"type":"Polygon","coordinates":[[[-46.541441475778861,-23.15003547373135,0.0],[-46.54137850814147,-23.15021400475716,0.0],[-46.541036196635311,-23.150091587480489,0.0],[-46.541112482071163,-23.14991817604778,0.0],[-46.541441475778861,-23.15003547373135,0.0]]]}}
-]
-}

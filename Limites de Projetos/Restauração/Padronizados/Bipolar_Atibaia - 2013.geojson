@@ -1,9 +1,0 @@
-{
-"type": "FeatureCollection",
-"name": "Bipolar_Atibaia - 2013",
-"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
-"xy_coordinate_resolution": 1e-15,
-"features": [
-{"type":"Feature","properties":{"Área (ha)":0.44161961345579476,"Nome do Projeto":null,"Propriedade":null,"Tipo":null,"Ano de Implantação":null,"Metodologia de Restauração":null,"Monitoramento":null,"Município":null,"UGRHI":null,"Região Hidrográfica":null,"Status do Projeto":null,"Fotos do Projeto":null},"geometry":{"type":"Polygon","coordinates":[[[-46.507906905812497,-23.103732799257571,0.0],[-46.507928962539303,-23.103813376738941,0.0],[-46.507876307424432,-23.103888791211759,0.0],[-46.507587732410357,-23.103738205664229,0.0],[-46.508337865912743,-23.102641661173589,0.0],[-46.508631185222967,-23.102748977883241,0.0],[-46.508055969483692,-23.103617754415371,0.0],[-46.508006203135352,-23.10352095321787,0.0],[-46.507930125315433,-23.103467112228319,0.0],[-46.507896079308424,-23.103495904779631,0.0],[-46.50788761325154,-23.103549305429681,0.0],[-46.507906905812497,-23.103732799257571,0.0]]]}}
-]
-}

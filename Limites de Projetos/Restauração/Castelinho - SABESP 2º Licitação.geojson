@@ -1,6 +1,7 @@
 {
 "type": "FeatureCollection",
 "name": "Castelinho - SABESP 2º Licitação",
+"xy_coordinate_resolution": 1e-15,
 "features": [
 
 ]
