@@ -377,8 +377,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // Add to map by default (all layers active on load)
-        geoLayer.addTo(map);
+        const isDefaultVisible = (key === 'municipios_SP');
+
+        // Only municipios_SP is active on initial load
+        if (isDefaultVisible) {
+            geoLayer.addTo(map);
+        }
 
         outrosLayers[key] = {
             key: key,
@@ -387,7 +391,7 @@ document.addEventListener('DOMContentLoaded', () => {
             subtitle: subtitle,
             data: data,
             layer: geoLayer,
-            visible: true,
+            visible: isDefaultVisible,
             opacity: 0.08
         };
     });
@@ -964,16 +968,24 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!ugrhiName) return;
 
             const ugrhiItem = outrosLayers['limites_ughris'];
-            if (ugrhiItem && ugrhiItem.layer) {
-                ugrhiItem.layer.eachLayer(l => {
-                    if (l.feature && l.feature.properties && l.feature.properties.Nome === ugrhiName) {
-                        const bounds = l.getBounds();
-                        if (bounds.isValid()) {
-                            map.fitBounds(bounds, { padding: [40, 40] });
-                            l.openPopup();
+            if (ugrhiItem) {
+                if (!ugrhiItem.visible && !map.hasLayer(ugrhiItem.layer)) {
+                    map.addLayer(ugrhiItem.layer);
+                    ugrhiItem.visible = true;
+                    const chk = document.querySelector(`.outros-toggle[data-key="limites_ughris"]`);
+                    if (chk) chk.checked = true;
+                }
+                if (ugrhiItem.layer) {
+                    ugrhiItem.layer.eachLayer(l => {
+                        if (l.feature && l.feature.properties && l.feature.properties.Nome === ugrhiName) {
+                            const bounds = l.getBounds();
+                            if (bounds.isValid()) {
+                                map.fitBounds(bounds, { padding: [40, 40] });
+                                l.openPopup();
+                            }
                         }
-                    }
-                });
+                    });
+                }
             }
         });
     }
@@ -985,18 +997,24 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!muniName) return;
 
             const outrosItem = outrosLayers['municipios_SP'];
-            if (outrosItem && outrosItem.layer) {
-                let found = false;
-                outrosItem.layer.eachLayer(l => {
-                    if (l.feature && l.feature.properties && l.feature.properties.NM_MUN === muniName) {
-                        const bounds = l.getBounds();
-                        if (bounds.isValid()) {
-                            map.fitBounds(bounds, { padding: [40, 40], maxZoom: 13 });
-                            l.openPopup();
-                            found = true;
+            if (outrosItem) {
+                if (!outrosItem.visible && !map.hasLayer(outrosItem.layer)) {
+                    map.addLayer(outrosItem.layer);
+                    outrosItem.visible = true;
+                    const chk = document.querySelector(`.outros-toggle[data-key="municipios_SP"]`);
+                    if (chk) chk.checked = true;
+                }
+                if (outrosItem.layer) {
+                    outrosItem.layer.eachLayer(l => {
+                        if (l.feature && l.feature.properties && l.feature.properties.NM_MUN === muniName) {
+                            const bounds = l.getBounds();
+                            if (bounds.isValid()) {
+                                map.fitBounds(bounds, { padding: [40, 40], maxZoom: 13 });
+                                l.openPopup();
+                            }
                         }
-                    }
-                });
+                    });
+                }
             }
         });
     }
