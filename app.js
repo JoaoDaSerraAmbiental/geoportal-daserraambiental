@@ -56,6 +56,8 @@ document.addEventListener('DOMContentLoaded', () => {
     map.getPane('projetosPane').style.pointerEvents = 'auto';
 
     let activeBaseMapKey = 'google-satellite';
+    let currentWaybackLayer = null;
+    let isHistoricalActive = false;
 
     // ----------------------------------------------------------------------
     // 2. Color Palettes por Categoria de Projeto
@@ -538,12 +540,32 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.basemap-card').forEach(card => {
         card.addEventListener('click', () => {
             const key = card.dataset.basemap;
-            if (key === activeBaseMapKey) return;
+            if (key === activeBaseMapKey && !isHistoricalActive) return;
+
+            if (isHistoricalActive && currentWaybackLayer && map.hasLayer(currentWaybackLayer)) {
+                map.removeLayer(currentWaybackLayer);
+                isHistoricalActive = false;
+                const timelineBadge = document.getElementById('timeline-active-badge');
+                const timelineTitle = document.getElementById('timeline-active-title');
+                const timelineSubtitle = document.getElementById('timeline-active-subtitle');
+                const timelineRange = document.getElementById('timeline-range');
+                const btnToggleTimeline = document.getElementById('btn-toggle-timeline');
+                const timelinePanel = document.getElementById('timeline-floating-panel');
+                if (timelineBadge) timelineBadge.textContent = '2026';
+                if (timelineTitle) timelineTitle.textContent = 'Google Satélite (Atual)';
+                if (timelineSubtitle) timelineSubtitle.textContent = 'Imagens de satélite mais recentes';
+                if (timelineRange) timelineRange.value = 12;
+                if (timelinePanel && timelinePanel.classList.contains('hidden') && btnToggleTimeline) {
+                    btnToggleTimeline.classList.remove('active');
+                }
+            }
 
             document.querySelectorAll('.basemap-card').forEach(c => c.classList.remove('active'));
             card.classList.add('active');
 
-            map.removeLayer(baseTileLayers[activeBaseMapKey]);
+            if (baseTileLayers[activeBaseMapKey] && map.hasLayer(baseTileLayers[activeBaseMapKey])) {
+                map.removeLayer(baseTileLayers[activeBaseMapKey]);
+            }
             baseTileLayers[key].addTo(map);
             activeBaseMapKey = key;
         });
@@ -904,21 +926,27 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Floating Map Tools: Recenter & Fullscreen
-    document.getElementById('btn-recenter').addEventListener('click', () => {
-        if (allProjectBounds.isValid()) {
-            map.fitBounds(allProjectBounds, { padding: [40, 40] });
-        }
-    });
-
-    document.getElementById('btn-fullscreen').addEventListener('click', () => {
-        if (!document.fullscreenElement) {
-            document.documentElement.requestFullscreen();
-        } else {
-            if (document.exitFullscreen) {
-                document.exitFullscreen();
+    const btnRecenter = document.getElementById('btn-recenter');
+    if (btnRecenter) {
+        btnRecenter.addEventListener('click', () => {
+            if (allProjectBounds.isValid()) {
+                map.fitBounds(allProjectBounds, { padding: [40, 40] });
             }
-        }
-    });
+        });
+    }
+
+    const btnFullscreen = document.getElementById('btn-fullscreen');
+    if (btnFullscreen) {
+        btnFullscreen.addEventListener('click', () => {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        });
+    }
 
     // Map Mousemove Status (Coordinates & Altitude)
     const statusLat = document.getElementById('status-lat');
@@ -1029,9 +1057,6 @@ document.addEventListener('DOMContentLoaded', () => {
         { year: '2026', date: '2026-08-05', label: '05/08/2026', releaseNum: '26334', title: 'Imagens de Satélite (05/08/2026)' }
     ];
 
-    let currentWaybackLayer = null;
-    let isHistoricalActive = false;
-
     const btnToggleTimeline   = document.getElementById('btn-toggle-timeline');
     const timelinePanel       = document.getElementById('timeline-floating-panel');
     const timelineCloseBtn    = document.getElementById('timeline-close-btn');
@@ -1097,6 +1122,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         currentWaybackLayer = L.tileLayer(tileUrl, {
             maxZoom: 20,
+            maxNativeZoom: 18,
             attribution: `&copy; Esri World Imagery Wayback (${dateLabel})`
         });
 
@@ -1141,14 +1167,18 @@ document.addEventListener('DOMContentLoaded', () => {
         if (timelineBadge) timelineBadge.textContent = '2026';
         if (timelineTitle) timelineTitle.textContent = 'Google Satélite (Atual)';
         if (timelineSubtitle) timelineSubtitle.textContent = 'Imagens de satélite mais recentes';
-        if (btnToggleTimeline) btnToggleTimeline.classList.remove('active');
+        if (timelineRange) timelineRange.value = waybackKeyReleases.length - 1;
+        if (btnToggleTimeline && (!timelinePanel || timelinePanel.classList.contains('hidden'))) {
+            btnToggleTimeline.classList.remove('active');
+        }
     }
 
     // Event Listeners for Timeline
     if (btnToggleTimeline) {
         btnToggleTimeline.addEventListener('click', () => {
             if (timelinePanel) {
-                timelinePanel.classList.toggle('hidden');
+                const isHidden = timelinePanel.classList.toggle('hidden');
+                btnToggleTimeline.classList.toggle('active', !isHidden || isHistoricalActive);
             }
         });
     }
@@ -1156,6 +1186,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (timelineCloseBtn) {
         timelineCloseBtn.addEventListener('click', () => {
             if (timelinePanel) timelinePanel.classList.add('hidden');
+            if (btnToggleTimeline && !isHistoricalActive) {
+                btnToggleTimeline.classList.remove('active');
+            }
         });
     }
 

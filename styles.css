@@ -996,7 +996,7 @@ body, html {
     transform: translateX(-50%);
     z-index: 999;
     width: 440px;
-    max-width: calc(100vw - 420px);
+    max-width: min(440px, calc(100% - 30px));
     background: rgba(255, 255, 255, 0.96);
     backdrop-filter: blur(12px);
     border: 1px solid var(--border-color);

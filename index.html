@@ -19,7 +19,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
     
     <!-- Custom Styles -->
-    <link rel="stylesheet" href="styles.css?v=4">
+    <link rel="stylesheet" href="styles.css?v=5">
 </head>
 <body>
     <div id="app-container">
@@ -60,11 +60,8 @@
                 </button>
             </div>
             <div class="toolbar-actions" style="border-top: 1px solid var(--border-color); padding-top: 6px; margin-top: 2px;">
-                <button class="btn-tool" id="btn-toggle-status" title="Colorir camadas por Status do Projeto (Laranja = Ativo, Azul = Em finalização/Finalizado)">
+                <button class="btn-tool" id="btn-toggle-status" title="Colorir camadas por Status do Projeto (Laranja = Ativo, Azul = Em finalização/Finalizado)" style="width: 100%;">
                     <i class="fa-solid fa-circle-half-stroke"></i> <span id="toggle-status-label">Status de Projetos</span>
-                </button>
-                <button class="btn-tool" id="btn-toggle-timeline" title="Abrir Linha do Tempo de Imagens Históricas de Satélite (2014 - 2026)">
-                    <i class="fa-solid fa-clock-rotate-left"></i> <span>Imagens Históricas</span>
                 </button>
             </div>
 
@@ -161,6 +158,19 @@
 
         <!-- Main Map View Container -->
         <main id="map">
+            
+            <!-- Floating Top-Right Tool Buttons -->
+            <div class="map-floating-tools">
+                <button class="floating-btn" id="btn-toggle-timeline" title="Imagens Históricas de Satélite (2014 - 2026)">
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                </button>
+                <button class="floating-btn" id="btn-recenter" title="Centralizar nos Projetos">
+                    <i class="fa-solid fa-location-crosshairs"></i>
+                </button>
+                <button class="floating-btn" id="btn-fullscreen" title="Modo Tela Cheia">
+                    <i class="fa-solid fa-expand"></i>
+                </button>
+            </div>
             
             <!-- Map Coordinates & Altitude Status Bar (Centered at Bottom) -->
             <div class="map-status-bar">
@@ -291,9 +301,9 @@
     <script src="https://unpkg.com/@turf/turf@6.5.0/turf.min.js"></script>
 
     <!-- Embedded GeoJSON Data Package -->
-    <script src="geojson_data.js?v=4"></script>
+    <script src="geojson_data.js?v=5"></script>
 
     <!-- Custom Application Logic -->
-    <script src="app.js?v=4"></script>
+    <script src="app.js?v=5"></script>
 </body>
 </html>
