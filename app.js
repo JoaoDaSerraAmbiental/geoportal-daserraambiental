@@ -249,6 +249,17 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     });
 
+    // Helper function to verify if current map zoom is at the 5km scale
+    function isMuniZoom5km() {
+        const scaleEl = document.querySelector('.leaflet-control-scale-line');
+        if (scaleEl && scaleEl.textContent) {
+            const txt = scaleEl.textContent.trim();
+            if (txt === '5 km') return true;
+        }
+        const z = Math.round(map.getZoom());
+        return z === 11;
+    }
+
     // Load Outros Limites (Municípios SP & UGRHIs)
     const outrosKeys = Object.keys(geoData.outros);
     outrosKeys.forEach((key) => {
@@ -259,7 +270,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (key === 'municipios_SP') {
             layerName = 'Municípios de São Paulo (IBGE)';
-            color = '#ffffff';
+            color = '#475569'; // Cinza escuro discreto para evitar poluição visual
             subtitle = '645 Municípios';
         } else if (key === 'limites_ughris') {
             layerName = 'UGRHIs (Bacias Hidrográficas SP)';
@@ -277,16 +288,18 @@ document.addEventListener('DOMContentLoaded', () => {
             pane: 'outrosPane',
             style: {
                 color: color,
-                weight: isMuni ? 1.2 : (key === 'limites_ughris' ? 1.8 : 1),
-                opacity: isMuni ? 0.95 : 0.8,
+                weight: isMuni ? 1 : (key === 'limites_ughris' ? 1.8 : 1),
+                opacity: isMuni ? 0.75 : 0.8,
                 fillColor: color,
-                fillOpacity: isMuni ? 0.01 : 0.08
+                fillOpacity: isMuni ? 0.005 : 0.08
             },
             onEachFeature: (feature, layer) => {
                 layer.on({
                     mouseover: (e) => {
                         if (isMuni) {
-                            e.target.setStyle({ weight: 2.8, color: '#ffffff', fillOpacity: 0.18 });
+                            if (isMuniZoom5km()) {
+                                e.target.setStyle({ weight: 2.2, color: '#38bdf8', fillOpacity: 0.12 });
+                            }
                         } else {
                             e.target.setStyle({ weight: 3, color: '#0f172a', fillOpacity: 0.25 });
                         }
@@ -345,7 +358,21 @@ document.addEventListener('DOMContentLoaded', () => {
                         className: 'muni-custom-tooltip'
                     });
 
+                    // Guard openTooltip so it ONLY opens when zoom is 5km
+                    const origOpenTooltip = layer.openTooltip;
+                    layer.openTooltip = function() {
+                        if (!isMuniZoom5km()) return this;
+                        return origOpenTooltip.apply(this, arguments);
+                    };
+
                     layer.bindPopup(`<strong>Município: ${props.NM_MUN}</strong><br>Área: ${areaKm} (${areaHa})<br>Bacia (UGRHI): ${ugrhiDesc}<br>Região Hidrográfica: ${regiaoDesc}`);
+
+                    // Guard openPopup so it ONLY opens when zoom is 5km
+                    const origOpenPopup = layer.openPopup;
+                    layer.openPopup = function() {
+                        if (!isMuniZoom5km()) return this;
+                        return origOpenPopup.apply(this, arguments);
+                    };
                 }
             }
         });
@@ -363,6 +390,19 @@ document.addEventListener('DOMContentLoaded', () => {
             visible: true,
             opacity: 0.08
         };
+    });
+
+    // Close municipality tooltips/popups and reset highlight when zooming outside 5km scale
+    map.on('zoomend', () => {
+        if (!isMuniZoom5km()) {
+            map.closeTooltip();
+            map.closePopup();
+            if (outrosLayers['municipios_SP'] && outrosLayers['municipios_SP'].layer) {
+                outrosLayers['municipios_SP'].layer.eachLayer((l) => {
+                    outrosLayers['municipios_SP'].layer.resetStyle(l);
+                });
+            }
+        }
     });
 
     // Update Badges Counters
