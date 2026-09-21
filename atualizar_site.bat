@@ -7,13 +7,24 @@ echo.
 cd /d "%~dp0"
 
 echo [1/3] Compilando arquivos GeoJSON para geojson_data.js...
-py build_data.py
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0build_data.ps1"
+if errorlevel 1 (
+    echo [ERRO] Falha ao compilar arquivos GeoJSON!
+    pause
+    exit /b 1
+)
 echo.
 echo [OK] Dados compilados localmente com sucesso!
 echo.
 
 where git >nul 2>&1
-if errorlevel 1 goto NO_GIT
+if errorlevel 1 (
+    if exist "C:\Program Files\Git\cmd\git.exe" (
+        set "PATH=%PATH%;C:\Program Files\Git\cmd"
+    ) else (
+        goto NO_GIT
+    )
+)
 
 if not exist ".git" goto NO_GIT_REPO
 
