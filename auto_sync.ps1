@@ -22,8 +22,14 @@ Escrever-Log "Monitorando pasta: $repoDir"
 
 # 1. Verifica se o Git esta disponivel
 if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
-    Escrever-Log "ERRO CRITICO: O executavel 'git' nao foi encontrado no PATH deste computador. Instale o Git para Windows."
-    exit 1
+    if (Test-Path "C:\Program Files\Git\cmd\git.exe") {
+        $env:PATH += ";C:\Program Files\Git\cmd"
+    } elseif (Test-Path "$env:LOCALAPPDATA\Programs\Git\cmd\git.exe") {
+        $env:PATH += ";$env:LOCALAPPDATA\Programs\Git\cmd"
+    } else {
+        Escrever-Log "ERRO CRITICO: O executavel 'git' nao foi encontrado no PATH deste computador. Instale o Git para Windows."
+        exit 1
+    }
 }
 
 # 2. Verifica se a pasta e um repositorio Git
