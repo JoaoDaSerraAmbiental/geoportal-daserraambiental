@@ -4,6 +4,6 @@
 "crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
 "xy_coordinate_resolution": 1e-15,
 "features": [
-{"type":"Feature","properties":{"Área (ha)":0.076,"Nome do Projeto":"Acacio","Propriedade":"-","Tipo":"Recuperação Ambiental","Ano de Implantação":"2015","Metodologia de Restauração":null,"Monitoramento":null,"Município":"Atibaia","UGRHI":"05 -  Piracicaba, Capivari e Jundiaí","Região Hidrográfica":"Paraná","Status do Projeto":null,"Fotos do Projeto":null},"geometry":{"type":"Polygon","coordinates":[[[-46.541441475778861,-23.15003547373135,0.0],[-46.54137850814147,-23.15021400475716,0.0],[-46.541036196635311,-23.150091587480489,0.0],[-46.541112482071163,-23.14991817604778,0.0],[-46.541441475778861,-23.15003547373135,0.0]]]}}
+{"type":"Feature","properties":{"Área (ha)":0.076,"Nome do Projeto":"Cond. Arco Íris","Propriedade":"-","Tipo":"Recuperação Ambiental","Ano de Implantação":"2015","Metodologia de Restauração":null,"Monitoramento":"-","Município":"Atibaia","UGRHI":"05 -  Piracicaba, Capivari e Jundiaí","Região Hidrográfica":"Paraná","Status do Projeto":"Finalizado","Fotos do Projeto":null},"geometry":{"type":"Polygon","coordinates":[[[-46.541441475778861,-23.15003547373135,0.0],[-46.54137850814147,-23.15021400475716,0.0],[-46.541036196635311,-23.150091587480489,0.0],[-46.541112482071163,-23.14991817604778,0.0],[-46.541441475778861,-23.15003547373135,0.0]]]}}
 ]
 }
