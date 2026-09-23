@@ -1243,6 +1243,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
             }
+
+            // Atualiza também as cores dos marcadores na aba de Municípios
+            const muniProjEl = document.querySelector(`.muni-proj-item[data-key="${key}"]`);
+            if (muniProjEl && !isPropriedade) {
+                const muniDot = muniProjEl.querySelector('.muni-proj-dot');
+                if (muniDot && item.data && item.data.features && item.data.features.length > 0) {
+                    muniDot.style.backgroundColor = getFeatureColor(item.data.features[0], item.color);
+                }
+            }
         });
     }
 
@@ -1332,6 +1341,498 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
                 }
             }
+        });
+    }
+
+    // ======================================================================
+    // 6. Aba Municípios: Mapeamento Canônico, Indexação e Interatividade
+    // ======================================================================
+    const MUNICIPALITY_CANONICAL = {
+        'joanopolis': 'Joanópolis',
+        'joanópolis': 'Joanópolis',
+        'salesopolis': 'Salesópolis',
+        'salesópolis': 'Salesópolis',
+        'alesópolis': 'Salesópolis',
+        'piracaia': 'Piracaia',
+        'atibaia': 'Atibaia',
+        'bragança paulista': 'Bragança Paulista',
+        'braganca paulista': 'Bragança Paulista',
+        'cajamar': 'Cajamar',
+        'valinhos': 'Valinhos',
+        'guarulhos': 'Guarulhos',
+        'paraibuna': 'Paraibuna',
+        'são josé dos campos': 'São José dos Campos',
+        'sao jose dos campos': 'São José dos Campos',
+        'são francisco xavier': 'São José dos Campos',
+        'sao francisco xavier': 'São José dos Campos',
+        'nova odessa': 'Nova Odessa',
+        'jaguariúna': 'Jaguariúna',
+        'jaguariuna': 'Jaguariúna',
+        'franco da rocha': 'Franco da Rocha',
+        'são paulo': 'São Paulo',
+        'sao paulo': 'São Paulo',
+        'euclides da cunha': 'Euclides da Cunha Paulista',
+        'euclides da cunha paulista': 'Euclides da Cunha Paulista',
+        'jacareí': 'Jacareí',
+        'jacarei': 'Jacareí',
+        'cabreúva': 'Cabreúva',
+        'cabreuva': 'Cabreúva',
+        'são pedro': 'São Pedro',
+        'sao pedro': 'São Pedro',
+        'pedra bela': 'Pedra Bela',
+        'limeira': 'Limeira',
+        'ouro verde': 'Ouro Verde',
+        'extrema': 'Extrema',
+        'pinhalzinho': 'Pinhalzinho',
+        'tatuí': 'Tatuí',
+        'tatui': 'Tatuí',
+        'campinas': 'Campinas',
+        'nazaré paulista': 'Nazaré Paulista',
+        'nazare paulista': 'Nazaré Paulista'
+    };
+
+    function normalizeMuniName(str) {
+        if (!str) return '';
+        const clean = String(str).trim();
+        const lower = clean.toLowerCase();
+        if (MUNICIPALITY_CANONICAL[lower]) return MUNICIPALITY_CANONICAL[lower];
+        const noDiacritics = lower.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        if (MUNICIPALITY_CANONICAL[noDiacritics]) return MUNICIPALITY_CANONICAL[noDiacritics];
+        return clean;
+    }
+
+    function extractProjectMunicipality(item) {
+        if (!item || !item.data) return null;
+        const features = item.data.features || [];
+        if (features.length === 0) return null;
+
+        // 1. Procurar nas propriedades da feature
+        for (const feat of features) {
+            const props = feat.properties || {};
+            for (const k of Object.keys(props)) {
+                const normKey = k.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                if (normKey === 'municipio' || normKey === 'municipio_' || normKey === 'cidade') {
+                    const val = props[k];
+                    if (val) {
+                        const m = normalizeMuniName(val);
+                        if (m) return m;
+                    }
+                }
+            }
+        }
+
+        // 2. Fallback espacial: Interseção com municípios via Turf
+        try {
+            if (window.turf && geoData.outros && geoData.outros['municipios_SP']) {
+                const muniCollection = geoData.outros['municipios_SP'];
+                const firstFeat = features[0];
+                const point = turf.centroid(firstFeat);
+                for (const muniFeat of muniCollection.features) {
+                    if (turf.booleanPointInPolygon(point, muniFeat)) {
+                        const m = muniFeat.properties && muniFeat.properties.NM_MUN;
+                        if (m) return normalizeMuniName(m);
+                    }
+                }
+            }
+        } catch (e) {
+            console.warn('Erro no fallback espacial do município para', item.key, e);
+        }
+
+        return null;
+    }
+
+    let municipalityProjectsIndex = {};
+
+    function buildMunicipalityProjectsIndex() {
+        const index = {};
+
+        // Obter os limites geométricos e UGRHI de cada município
+        const muniBoundsMap = {};
+        const muniUgrhiMap = {};
+        if (outrosLayers['municipios_SP'] && outrosLayers['municipios_SP'].layer) {
+            outrosLayers['municipios_SP'].layer.eachLayer(l => {
+                if (l.feature && l.feature.properties && l.feature.properties.NM_MUN) {
+                    const nm = normalizeMuniName(l.feature.properties.NM_MUN);
+                    muniBoundsMap[nm] = l.getBounds();
+                    const info = (window.MUNICIPIOS_BACIAS && window.MUNICIPIOS_BACIAS[nm]) || {};
+                    if (info.ugrhi_str) {
+                        muniUgrhiMap[nm] = info.ugrhi_str.split('-')[0].trim();
+                    }
+                }
+            });
+        }
+
+        Object.keys(projectLayers).forEach(key => {
+            const item = projectLayers[key];
+            if (!item || item.categoria === 'area_propriedade') return; // Restauração e Floresta Pronta
+
+            const muni = extractProjectMunicipality(item);
+            if (!muni) return;
+
+            if (!index[muni]) {
+                index[muni] = {
+                    name: muni,
+                    count: 0,
+                    totalAreaHa: 0,
+                    ugrhi: muniUgrhiMap[muni] || 'SP',
+                    bounds: muniBoundsMap[muni] || L.latLngBounds(),
+                    projectBounds: L.latLngBounds(),
+                    projects: []
+                };
+            }
+
+            index[muni].count++;
+            const areaNum = parseFloat(item.areaHa) || 0;
+            index[muni].totalAreaHa += areaNum;
+
+            if (item.layer && typeof item.layer.getBounds === 'function') {
+                const b = item.layer.getBounds();
+                if (b.isValid()) {
+                    index[muni].projectBounds.extend(b);
+                }
+            }
+
+            // Status da feature
+            let status = 'outro';
+            let statusDesc = 'Em atividade';
+            if (item.data && item.data.features && item.data.features.length > 0) {
+                const s = getFeatureStatus(item.data.features[0]);
+                if (s.includes('finaliz') || s.includes('conclu')) {
+                    status = 'finalizado';
+                    statusDesc = 'Finalizado';
+                } else if (s.includes('ativ') || s.includes('andamento') || s.includes('plantio') || s.includes('manutenc')) {
+                    status = 'ativo';
+                    statusDesc = 'Em atividade';
+                }
+            }
+
+            index[muni].projects.push({
+                key: key,
+                name: item.name,
+                categoria: item.categoria,
+                areaHa: item.areaHa,
+                status: status,
+                statusDesc: statusDesc,
+                color: item.color
+            });
+        });
+
+        // Ordenar os projetos dentro de cada município alfabeticamente
+        Object.keys(index).forEach(muni => {
+            index[muni].projects.sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { numeric: true, sensitivity: 'base' }));
+        });
+
+        municipalityProjectsIndex = index;
+        return index;
+    }
+
+    function zoomToMunicipality(muniName) {
+        const data = municipalityProjectsIndex[muniName];
+        if (!data) return;
+
+        if (data.bounds && typeof data.bounds.isValid === 'function' && data.bounds.isValid()) {
+            map.fitBounds(data.bounds, { padding: [40, 40], maxZoom: 14 });
+        } else if (data.projectBounds && typeof data.projectBounds.isValid === 'function' && data.projectBounds.isValid()) {
+            map.fitBounds(data.projectBounds, { padding: [50, 50], maxZoom: 15 });
+        }
+
+        // Destaca temporariamente a borda do município se a camada estiver ativa
+        const outrosItem = outrosLayers['municipios_SP'];
+        if (outrosItem && outrosItem.layer) {
+            outrosItem.layer.eachLayer(l => {
+                if (l.feature && l.feature.properties && normalizeMuniName(l.feature.properties.NM_MUN) === muniName) {
+                    l.setStyle({ weight: 3, color: '#0284c7', fillOpacity: 0.16 });
+                    setTimeout(() => {
+                        if (outrosItem.layer) outrosItem.layer.resetStyle(l);
+                    }, 3000);
+                }
+            });
+        }
+    }
+
+    function focusProjectOnMap(key) {
+        const item = projectLayers[key];
+        if (!item || !item.layer) return;
+
+        // Se a camada estiver desmarcada, ativá-la
+        if (!item.visible) {
+            item.layer.addTo(map);
+            item.visible = true;
+            const chk = document.querySelector(`.layer-toggle[data-key="${key}"]`);
+            if (chk) chk.checked = true;
+            updateCategoryHeaderBadges();
+            updateTotalAreaDisplays();
+        }
+
+        // Zoom suave para os limites do projeto
+        try {
+            const bounds = item.layer.getBounds();
+            if (bounds.isValid()) {
+                map.fitBounds(bounds, { padding: [50, 50], maxZoom: 17 });
+            }
+        } catch (e) {
+            console.warn('Erro ao ajustar limites do projeto', key, e);
+        }
+
+        // Abre popup do primeiro elemento
+        item.layer.eachLayer(l => {
+            if (l.openPopup) {
+                l.openPopup();
+                return;
+            }
+        });
+    }
+
+    function renderMunicipalityCards() {
+        const container = document.getElementById('muni-cards-container');
+        if (!container) return;
+
+        const index = buildMunicipalityProjectsIndex();
+        const sortedMunis = Object.keys(index).sort((a, b) => {
+            if (index[b].count !== index[a].count) {
+                return index[b].count - index[a].count;
+            }
+            return a.localeCompare(b, 'pt-BR');
+        });
+
+        const totalMunis = sortedMunis.length;
+        let totalProjects = 0;
+        sortedMunis.forEach(m => totalProjects += index[m].count);
+
+        // Atualizar contadores no cabeçalho e rodapé
+        const tabBadge = document.getElementById('tab-badge-munis');
+        if (tabBadge) tabBadge.textContent = totalMunis;
+
+        const muniCountDisplay = document.getElementById('muni-count-display');
+        if (muniCountDisplay) muniCountDisplay.textContent = totalMunis;
+
+        const muniProjCountDisplay = document.getElementById('muni-projects-count-display');
+        if (muniProjCountDisplay) muniProjCountDisplay.textContent = totalProjects;
+
+        const summaryText = document.getElementById('muni-summary-text');
+        if (summaryText) {
+            summaryText.innerHTML = `<strong>${totalMunis} municípios</strong> com <strong>${totalProjects} projetos</strong>`;
+        }
+
+        container.innerHTML = '';
+
+        if (totalMunis === 0) {
+            container.innerHTML = `
+                <div class="muni-empty-state">
+                    <i class="fa-solid fa-map-location-dot"></i>
+                    <span>Nenhum município com projetos encontrado.</span>
+                </div>
+            `;
+            return;
+        }
+
+        sortedMunis.forEach(muniName => {
+            const data = index[muniName];
+            const card = document.createElement('div');
+            card.className = 'muni-card';
+            card.dataset.muni = muniName;
+
+            const countText = data.count === 1 ? '1 projeto' : `${data.count} projetos`;
+            const areaText = data.totalAreaHa > 0 ? ` • ${data.totalAreaHa.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 2 })} ha` : '';
+
+            card.innerHTML = `
+                <div class="muni-card-header" title="Clique para expandir/recolher os projetos de ${muniName}">
+                    <div class="muni-card-left">
+                        <div class="muni-pin-icon">
+                            <i class="fa-solid fa-location-dot"></i>
+                        </div>
+                        <div class="muni-info">
+                            <span class="muni-name">${muniName}</span>
+                            <span class="muni-sub-info">${data.ugrhi}${areaText}</span>
+                        </div>
+                    </div>
+                    <div class="muni-card-actions">
+                        <span class="muni-count-badge" title="${countText} em ${muniName}">${data.count}</span>
+                        <button type="button" class="btn-zoom-muni" title="Aproximar ${muniName} no mapa" data-muni="${muniName}">
+                            <i class="fa-solid fa-location-crosshairs"></i>
+                        </button>
+                        <i class="fa-solid fa-chevron-down muni-chevron"></i>
+                    </div>
+                </div>
+                <div class="muni-card-projects">
+                    ${data.projects.map(p => {
+                        const catTag = p.categoria === 'floresta_pronta'
+                            ? `<span class="muni-proj-tag tag-floresta">Floresta Pronta</span>`
+                            : `<span class="muni-proj-tag tag-restauracao">Restauração</span>`;
+                        const areaBadge = p.areaHa ? `<span class="muni-proj-area">${p.areaHa} ha</span>` : '';
+                        const pItem = projectLayers[p.key];
+                        let statusColor = p.color;
+                        if (colorByStatusEnabled && pItem && pItem.data && pItem.data.features && pItem.data.features.length > 0) {
+                            statusColor = getFeatureColor(pItem.data.features[0], p.color);
+                        } else {
+                            statusColor = p.status === 'ativo' ? '#f97316' : (p.status === 'finalizado' ? '#2563eb' : p.color);
+                        }
+                        return `
+                            <div class="muni-proj-item" data-key="${p.key}" title="Ver ${p.name} no mapa (${p.statusDesc})">
+                                <div class="muni-proj-left">
+                                    <span class="muni-proj-dot" style="background-color: ${statusColor};" title="${p.statusDesc}"></span>
+                                    <span class="muni-proj-name">${p.name}</span>
+                                </div>
+                                <div class="muni-proj-right">
+                                    ${catTag}
+                                    ${areaBadge}
+                                    <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 0.65rem; color: var(--text-muted); opacity: 0.7;"></i>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+
+            // Expandir / recolher card ao clicar no cabeçalho
+            const header = card.querySelector('.muni-card-header');
+            header.addEventListener('click', (e) => {
+                if (e.target.closest('.btn-zoom-muni')) return;
+                card.classList.toggle('expanded');
+            });
+
+            // Botão zoom no município
+            const btnZoom = card.querySelector('.btn-zoom-muni');
+            btnZoom.addEventListener('click', (e) => {
+                e.stopPropagation();
+                zoomToMunicipality(muniName);
+            });
+
+            // Clique nos itens de projetos
+            const projItems = card.querySelectorAll('.muni-proj-item');
+            projItems.forEach(itemEl => {
+                itemEl.addEventListener('click', () => {
+                    const key = itemEl.dataset.key;
+                    focusProjectOnMap(key);
+                });
+            });
+
+            container.appendChild(card);
+        });
+    }
+
+    // Inicializa a aba de municípios
+    renderMunicipalityCards();
+
+    // Controle de Abas da Barra Lateral (Camadas vs Municípios)
+    const tabBtnCamadas = document.getElementById('tab-btn-camadas');
+    const tabBtnMunicipios = document.getElementById('tab-btn-municipios');
+    const paneCamadas = document.getElementById('pane-camadas');
+    const paneMunicipios = document.getElementById('pane-municipios');
+
+    function switchSidebarTab(tabName) {
+        if (tabName === 'municipios') {
+            if (tabBtnCamadas) tabBtnCamadas.classList.remove('active');
+            if (tabBtnMunicipios) tabBtnMunicipios.classList.add('active');
+            if (paneCamadas) {
+                paneCamadas.style.display = 'none';
+                paneCamadas.classList.remove('active');
+            }
+            if (paneMunicipios) {
+                paneMunicipios.style.display = 'flex';
+                paneMunicipios.classList.add('active');
+            }
+        } else {
+            if (tabBtnMunicipios) tabBtnMunicipios.classList.remove('active');
+            if (tabBtnCamadas) tabBtnCamadas.classList.add('active');
+            if (paneMunicipios) {
+                paneMunicipios.style.display = 'none';
+                paneMunicipios.classList.remove('active');
+            }
+            if (paneCamadas) {
+                paneCamadas.style.display = 'flex';
+                paneCamadas.classList.add('active');
+            }
+        }
+    }
+
+    if (tabBtnCamadas && tabBtnMunicipios) {
+        tabBtnCamadas.addEventListener('click', () => switchSidebarTab('camadas'));
+        tabBtnMunicipios.addEventListener('click', () => switchSidebarTab('municipios'));
+    }
+
+    // Busca e Filtro em tempo real na aba Municípios
+    const muniSearchInput = document.getElementById('muni-search-input');
+    const btnClearMuniSearch = document.getElementById('btn-clear-muni-search');
+    const btnMuniExpandAll = document.getElementById('btn-muni-expand-all');
+    let allMunisExpanded = false;
+
+    if (muniSearchInput) {
+        muniSearchInput.addEventListener('input', (e) => {
+            const query = e.target.value.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            if (btnClearMuniSearch) {
+                btnClearMuniSearch.classList.toggle('hidden', query.length === 0);
+            }
+
+            const cards = document.querySelectorAll('#muni-cards-container .muni-card');
+            let visibleCount = 0;
+
+            cards.forEach(card => {
+                const muniName = card.dataset.muni || '';
+                const normMuni = muniName.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+                const matchesMuni = normMuni.includes(query);
+                let matchesProj = false;
+
+                const projItems = card.querySelectorAll('.muni-proj-item');
+                projItems.forEach(pi => {
+                    const pName = (pi.querySelector('.muni-proj-name')?.textContent || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                    if (query && pName.includes(query)) {
+                        matchesProj = true;
+                        pi.style.display = 'flex';
+                        pi.style.backgroundColor = '#fef08a';
+                    } else {
+                        pi.style.backgroundColor = '';
+                        pi.style.display = (query.length > 0 && !matchesMuni) ? 'none' : 'flex';
+                    }
+                });
+
+                if (matchesMuni || matchesProj) {
+                    card.style.display = '';
+                    visibleCount++;
+                    if (query.length > 0) {
+                        card.classList.add('expanded');
+                    } else if (!allMunisExpanded) {
+                        card.classList.remove('expanded');
+                    }
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+
+            const summaryText = document.getElementById('muni-summary-text');
+            if (summaryText) {
+                if (query.length > 0) {
+                    summaryText.innerHTML = `Mostrando <strong>${visibleCount}</strong> de <strong>${cards.length} municípios</strong>`;
+                } else {
+                    const index = municipalityProjectsIndex;
+                    const totalM = Object.keys(index).length;
+                    let totalP = 0;
+                    Object.keys(index).forEach(m => totalP += index[m].count);
+                    summaryText.innerHTML = `<strong>${totalM} municípios</strong> com <strong>${totalP} projetos</strong>`;
+                }
+            }
+        });
+    }
+
+    if (btnClearMuniSearch && muniSearchInput) {
+        btnClearMuniSearch.addEventListener('click', () => {
+            muniSearchInput.value = '';
+            muniSearchInput.dispatchEvent(new Event('input'));
+            muniSearchInput.focus();
+        });
+    }
+
+    if (btnMuniExpandAll) {
+        btnMuniExpandAll.addEventListener('click', () => {
+            allMunisExpanded = !allMunisExpanded;
+            const cards = document.querySelectorAll('#muni-cards-container .muni-card');
+            cards.forEach(c => c.classList.toggle('expanded', allMunisExpanded));
+            const icon = document.getElementById('icon-muni-expand-all');
+            if (icon) {
+                icon.className = allMunisExpanded ? 'fa-solid fa-angles-up' : 'fa-solid fa-angles-down';
+            }
+            btnMuniExpandAll.title = allMunisExpanded ? 'Recolher todos os municípios' : 'Expandir todos os municípios';
         });
     }
 

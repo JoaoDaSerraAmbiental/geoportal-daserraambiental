@@ -19,7 +19,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
     
     <!-- Custom Styles -->
-    <link rel="stylesheet" href="styles.css?v=16">
+    <link rel="stylesheet" href="styles.css?v=17">
 </head>
 <body>
     <div id="app-container">
@@ -52,10 +52,23 @@
                 </button>
             </div>
 
+            <!-- Sidebar Navigation Tabs -->
+            <div class="sidebar-tabs-nav">
+                <button type="button" class="sidebar-tab-btn active" id="tab-btn-camadas" data-tab="camadas" title="Visualizar Camadas e Categorias de Projetos">
+                    <i class="fa-solid fa-layer-group"></i>
+                    <span>Camadas</span>
+                </button>
+                <button type="button" class="sidebar-tab-btn" id="tab-btn-municipios" data-tab="municipios" title="Visualizar Municípios com Projetos">
+                    <i class="fa-solid fa-city"></i>
+                    <span>Municípios</span>
+                    <span class="tab-badge" id="tab-badge-munis">0</span>
+                </button>
+            </div>
 
-
-            <!-- Global Toolbar Actions -->
-            <div class="toolbar-actions">
+            <!-- Tab 1: Camadas -->
+            <div class="sidebar-tab-pane active" id="pane-camadas">
+                <!-- Global Toolbar Actions -->
+                <div class="toolbar-actions">
                 <button class="btn-tool" id="btn-select-all" title="Ativar todas as camadas de projetos">
                     <i class="fa-solid fa-check-double"></i> Ativar Todos
                 </button>
@@ -188,6 +201,53 @@
                     <div>
                         <div style="font-size: 0.68rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em;">Floresta Pronta</div>
                         <strong id="floresta-area-display" style="color: var(--primary-color); font-size: 0.85rem; font-weight: 700;">0,00 ha</strong>
+                    </div>
+                </div>
+            </div>
+            </div>
+
+            <!-- Tab 2: Municípios -->
+            <div class="sidebar-tab-pane" id="pane-municipios" style="display: none;">
+                <!-- Toolbar da Aba Municípios -->
+                <div class="muni-tab-toolbar">
+                    <div class="muni-search-wrapper">
+                        <i class="fa-solid fa-magnifying-glass muni-search-icon"></i>
+                        <input type="text" id="muni-search-input" class="muni-search-input" placeholder="Buscar município ou projeto..." autocomplete="off">
+                        <button type="button" class="muni-search-clear hidden" id="btn-clear-muni-search" title="Limpar busca">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+                    <div class="muni-summary-bar">
+                        <span id="muni-summary-text">Carregando municípios...</span>
+                        <div class="muni-toolbar-btns">
+                            <button type="button" class="btn-tool-icon" id="btn-muni-expand-all" title="Expandir ou recolher todos os municípios">
+                                <i class="fa-solid fa-angles-down" id="icon-muni-expand-all"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Lista Rolável de Municípios -->
+                <div class="sidebar-body muni-body" id="muni-cards-container">
+                    <!-- Cards de municípios gerados dinamicamente via app.js -->
+                </div>
+
+                <!-- Rodapé de Estatísticas de Municípios -->
+                <div class="sidebar-footer">
+                    <div class="stats-item" title="Total de municípios com projetos atendidos">
+                        <i class="fa-solid fa-city" style="color: var(--primary-color); font-size: 0.95rem;"></i>
+                        <div>
+                            <div style="font-size: 0.68rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em;">Municípios</div>
+                            <strong id="muni-count-display" style="color: var(--primary-color); font-size: 0.85rem; font-weight: 700;">0</strong>
+                        </div>
+                    </div>
+                    <div style="width: 1px; height: 26px; background-color: var(--border-color);"></div>
+                    <div class="stats-item" title="Total de projetos monitorados nestes municípios">
+                        <i class="fa-solid fa-seedling" style="color: #16a34a; font-size: 0.95rem;"></i>
+                        <div>
+                            <div style="font-size: 0.68rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em;">Projetos</div>
+                            <strong id="muni-projects-count-display" style="color: var(--primary-color); font-size: 0.85rem; font-weight: 700;">0</strong>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -339,12 +399,12 @@
     <script src="https://unpkg.com/@turf/turf@6.5.0/turf.min.js"></script>
 
     <!-- Embedded GeoJSON Data Package -->
-    <script src="geojson_data.js?v=16"></script>
+    <script src="geojson_data.js?v=17"></script>
 
     <!-- Municipal Basins Data Package -->
-    <script src="municipios_bacias_data.js?v=16"></script>
+    <script src="municipios_bacias_data.js?v=17"></script>
 
     <!-- Custom Application Logic -->
-    <script src="app.js?v=16"></script>
+    <script src="app.js?v=17"></script>
 </body>
 </html>
