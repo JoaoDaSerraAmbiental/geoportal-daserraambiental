@@ -19,7 +19,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
     
     <!-- Custom Styles -->
-    <link rel="stylesheet" href="styles.css?v=14">
+    <link rel="stylesheet" href="styles.css?v=15">
 </head>
 <body>
     <div id="app-container">
@@ -66,10 +66,40 @@
                     <i class="fa-solid fa-expand"></i> Enquadrar
                 </button>
             </div>
-            <div class="toolbar-actions" style="border-top: 1px solid var(--border-color); padding-top: 6px; margin-top: 2px;">
-                <button class="btn-tool" id="btn-toggle-status" title="Colorir camadas por Status do Projeto (Laranja = Ativo, Azul = Em finalização/Finalizado)" style="width: 100%;">
-                    <i class="fa-solid fa-circle-half-stroke"></i> <span id="toggle-status-label">Status de Projetos</span>
+            <div class="toolbar-actions status-toolbar-group" style="border-top: 1px solid var(--border-color); padding-top: 6px; margin-top: 2px; flex-direction: column; gap: 8px;">
+                <button class="btn-tool" id="btn-toggle-status" title="Colorir camadas por Situação do Projeto (Laranja = Em atividade, Azul = Finalizado)" style="width: 100%;">
+                    <i class="fa-solid fa-circle-half-stroke"></i> <span id="toggle-status-label">Situação dos Projetos</span>
                 </button>
+                <div id="status-summary-box" class="status-summary-box hidden">
+                    <div class="status-summary-header">
+                        <div class="status-summary-title">
+                            <i class="fa-solid fa-chart-pie"></i>
+                            <span>Situação dos Projetos</span>
+                        </div>
+                        <button class="status-summary-close" id="btn-close-status-summary" title="Fechar e voltar às cores padrão">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+                    <div class="status-summary-grid">
+                        <div class="status-card card-ativo" title="Projetos em atividade (plantio, manutenção ou andamento)">
+                            <div class="status-card-top">
+                                <span class="status-badge-dot dot-ativo"></span>
+                                <span class="status-card-label">Em atividade</span>
+                            </div>
+                            <div class="status-card-number" id="count-status-ativo">0</div>
+                        </div>
+                        <div class="status-card card-finalizado" title="Projetos concluídos ou em finalização">
+                            <div class="status-card-top">
+                                <span class="status-badge-dot dot-finalizado"></span>
+                                <span class="status-card-label">Finalizados</span>
+                            </div>
+                            <div class="status-card-number" id="count-status-finalizado">0</div>
+                        </div>
+                    </div>
+                    <div class="status-summary-footer" id="status-summary-footer">
+                        Total: 94 projetos monitorados
+                    </div>
+                </div>
             </div>
 
             <!-- Sidebar Scrollable Content -->
@@ -309,12 +339,12 @@
     <script src="https://unpkg.com/@turf/turf@6.5.0/turf.min.js"></script>
 
     <!-- Embedded GeoJSON Data Package -->
-    <script src="geojson_data.js?v=14"></script>
+    <script src="geojson_data.js?v=15"></script>
 
     <!-- Municipal Basins Data Package -->
-    <script src="municipios_bacias_data.js?v=14"></script>
+    <script src="municipios_bacias_data.js?v=15"></script>
 
     <!-- Custom Application Logic -->
-    <script src="app.js?v=14"></script>
+    <script src="app.js?v=15"></script>
 </body>
 </html>

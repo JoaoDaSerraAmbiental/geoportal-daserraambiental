@@ -166,10 +166,10 @@ document.addEventListener('DOMContentLoaded', () => {
     function getFeatureColor(feature, defaultColor) {
         if (!colorByStatusEnabled) return defaultColor;
         const status = getFeatureStatus(feature);
-        if (status === 'ativo') {
-            return '#f97316'; // Laranja
-        } else if (status.includes('finaliz')) {
-            return '#2563eb'; // Azul
+        if (status.includes('ativ') || status.includes('andamento') || status.includes('plantio') || status.includes('manutenc')) {
+            return '#f97316'; // Laranja (Em atividade)
+        } else if (status.includes('finaliz') || status.includes('conclu')) {
+            return '#2563eb'; // Azul (Finalizado)
         }
         return defaultColor;
     }
@@ -904,8 +904,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Botão de alternância: Cor por Status do Projeto
+    // ----------------------------------------------------------------------
+    // Botão de alternância: Situação dos Projetos (Ativos x Finalizados)
+    // ----------------------------------------------------------------------
     const btnToggleStatus = document.getElementById('btn-toggle-status');
+    const statusSummaryBox = document.getElementById('status-summary-box');
+    const btnCloseStatusSummary = document.getElementById('btn-close-status-summary');
+
     if (btnToggleStatus) {
         btnToggleStatus.addEventListener('click', () => {
             colorByStatusEnabled = !colorByStatusEnabled;
@@ -913,19 +918,93 @@ document.addEventListener('DOMContentLoaded', () => {
 
             btnToggleStatus.title = colorByStatusEnabled
                 ? 'Clique para voltar às cores normais das categorias'
-                : 'Colorir camadas por Status do Projeto (Laranja = Ativo, Azul = Em finalização/Finalizado)';
+                : 'Colorir camadas por Situação do Projeto (Laranja = Em atividade, Azul = Finalizado)';
+
+            if (statusSummaryBox) {
+                if (colorByStatusEnabled) {
+                    statusSummaryBox.classList.remove('hidden');
+                    updateProjectStatusCounts();
+                } else {
+                    statusSummaryBox.classList.add('hidden');
+                }
+            }
 
             updateAllProjectLayerStyles();
         });
     }
 
+    if (btnCloseStatusSummary && btnToggleStatus) {
+        btnCloseStatusSummary.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (colorByStatusEnabled) {
+                btnToggleStatus.click();
+            }
+        });
+    }
+
+    function updateProjectStatusCounts() {
+        let countAtivo = 0;
+        let countFinalizado = 0;
+
+        Object.keys(projectLayers).forEach(key => {
+            const item = projectLayers[key];
+            if (!item || !item.data || !item.data.features || item.data.features.length === 0) return;
+            if (item.categoria === 'area_propriedade') return;
+
+            let statusCategory = null;
+            for (const feat of item.data.features) {
+                const s = getFeatureStatus(feat);
+                if (s.includes('finaliz') || s.includes('conclu')) {
+                    statusCategory = 'finalizado';
+                    break;
+                } else if (s.includes('ativ') || s.includes('andamento') || s.includes('plantio') || s.includes('manutenc')) {
+                    statusCategory = 'ativo';
+                    break;
+                }
+            }
+
+            if (statusCategory === 'finalizado') {
+                countFinalizado++;
+            } else if (statusCategory === 'ativo') {
+                countAtivo++;
+            }
+        });
+
+        const elAtivo = document.getElementById('count-status-ativo');
+        const elFinalizado = document.getElementById('count-status-finalizado');
+        const elFooter = document.getElementById('status-summary-footer');
+        if (elAtivo) elAtivo.textContent = countAtivo;
+        if (elFinalizado) elFinalizado.textContent = countFinalizado;
+        if (elFooter) {
+            const total = countAtivo + countFinalizado;
+            elFooter.textContent = `Total: ${total} projetos monitorados`;
+        }
+    }
+
     function updateAllProjectLayerStyles() {
         Object.keys(projectLayers).forEach(key => {
             const item = projectLayers[key];
-            if (item && item.layer) {
-                const cat = item.categoria || projectCategory[key] || 'restauracao';
-                const currentOpacity = (item.opacity !== undefined) ? item.opacity : (cat === 'area_propriedade' ? 0 : 0.45);
+            if (!item) return;
+            const cat = item.categoria || projectCategory[key] || 'restauracao';
+            const isPropriedade = (cat === 'area_propriedade');
+
+            if (item.layer) {
+                const currentOpacity = (item.opacity !== undefined) ? item.opacity : (isPropriedade ? 0 : 0.45);
                 item.layer.setStyle((feat) => getFeatureStyle(feat, item.color, currentOpacity, cat));
+            }
+
+            // Atualiza também o badge de cor na lista da barra lateral
+            const layerEl = document.querySelector(`.layer-item[data-key="${key}"]`);
+            if (layerEl && !isPropriedade) {
+                const badgeEl = layerEl.querySelector('.color-badge');
+                if (badgeEl) {
+                    if (colorByStatusEnabled && item.data && item.data.features && item.data.features.length > 0) {
+                        const firstFeat = item.data.features[0];
+                        badgeEl.style.backgroundColor = getFeatureColor(firstFeat, item.color);
+                    } else {
+                        badgeEl.style.backgroundColor = item.color;
+                    }
+                }
             }
         });
     }
