@@ -98,14 +98,251 @@ document.addEventListener('DOMContentLoaded', () => {
     // ----------------------------------------------------------------------
     const geoData = window.GEOPORTAL_DATA || { projetos: {}, outros: {} };
 
+    // ----------------------------------------------------------------------
+    // Dicionário de Nomes de Projetos Padronizados (Acentuação e Pontuação)
+    // ----------------------------------------------------------------------
+    const PROJECT_DISPLAY_NAMES = {
+        // Área da Propriedade
+        "area_propriedade__Aguas do Pontal": "Águas do Pontal",
+        "area_propriedade__Bragança Pta. PCJ": "Bragança Paulista - PCJ",
+        "area_propriedade__Fazenda Carmellina": "Fazenda Carmelina",
+        "area_propriedade__Fazenda Modelo": "Fazenda Modelo",
+        "area_propriedade__Fazenda Vale das Flores": "Fazenda Vale das Flores",
+        "area_propriedade__Manancial": "Manancial",
+        "area_propriedade__PE Rio do Peixe": "P.E. Rio do Peixe",
+        "area_propriedade__Rancho Katende": "Rancho Katendê",
+        "area_propriedade__Recanto SoLe": "Recanto SoLê",
+        "area_propriedade__REDS 2 - 10028": "REDS 2 (10028)",
+        "area_propriedade__REDS 2 - 23042": "REDS 2 (23042)",
+        "area_propriedade__Reserva AMME": "Reserva AMME",
+        "area_propriedade__Reserva Mantiqueira": "Reserva Mantiqueira",
+        "area_propriedade__Reserva Muriqui": "Reserva Muriqui",
+        "area_propriedade__Sitio Bella Luna": "Sítio Bella Luna",
+        "area_propriedade__Sítio das Siriemas": "Sítio das Siriemas",
+        "area_propriedade__Sitio Sao Joao": "Sítio São João",
+        "area_propriedade__Sítio São Jorge": "Sítio São Jorge",
+
+        // Floresta Pronta
+        "floresta_pronta__Anahata": "Anahata",
+        "floresta_pronta__Fazenda Rio Grande": "Fazenda Rio Grande",
+        "floresta_pronta__Instituto Olhos Dagua": "Instituto Olhos D'Água",
+        "floresta_pronta__Quinhao": "Quinhão",
+        "floresta_pronta__Recanto do Alento": "Recanto do Alento",
+        "floresta_pronta__REDS 3": "REDS 3",
+        "floresta_pronta__REDS 4": "REDS 4",
+        "floresta_pronta__Sitio Vista Alegre": "Sítio Vista Alegre",
+
+        // Restauração
+        "restauracao__Acacio_ind_2015": "Acácio - Ind. (2015)",
+        "restauracao__Aguas_do_Pontal": "Águas do Pontal",
+        "restauracao__Airton - WWF - 2014": "Airton - WWF (2014)",
+        "restauracao__Alto Tiete I (1753)": "Alto Tietê I (1753)",
+        "restauracao__Alto Tiete I (1755)": "Alto Tietê I (1755)",
+        "restauracao__Ambev Jacarei - 2018": "Ambev Jacareí (2018)",
+        "restauracao__Ambev Jaguariuna - 2019 - Leucenas": "Ambev Jaguariúna - Leucenas (2019)",
+        "restauracao__Ambev Jaguariuna - 2022": "Ambev Jaguariúna (2022)",
+        "restauracao__Antonio de Campos - Salesopolis - Licitação Pref. 2016": "Antônio de Campos - Salesópolis - Licitação Pref. (2016)",
+        "restauracao__APP alojamento Da Serra - Voluntário": "APP Alojamento Da Serra (Voluntário)",
+        "restauracao__Bar da Loira - Salesopolis - Licitação Pref. 2016": "Bar da Loira - Salesópolis - Licitação Pref. (2016)",
+        "restauracao__Batata - Salesopolis - Licitação Pref. 2016": "Batata - Salesópolis - Licitação Pref. (2016)",
+        "restauracao__Batazza - SABESP 2º Licitação": "Batazza - SABESP (2ª Licitação)",
+        "restauracao__Benedito - Salesopolis - Licitação Pref. 2016": "Benedito - Salesópolis - Licitação Pref. (2016)",
+        "restauracao__Bipolar_Atibaia - 2013": "Bipolar - Atibaia (2013)",
+        "restauracao__Bosque da Memória Da Serra": "Bosque da Memória - Da Serra",
+        "restauracao__Boy - TNC - Salesópolis 2015": "Boy - TNC - Salesópolis (2015)",
+        "restauracao__Braganca Pta PCJ": "Bragança Paulista - PCJ",
+        "restauracao__Cantareira I (4068)": "Cantareira I (4068)",
+        "restauracao__Cantareira I (4069)": "Cantareira I (4069)",
+        "restauracao__Cantinho do Bile - SABESP 2º Licitação": "Cantinho do Bile - SABESP (2ª Licitação)",
+        "restauracao__Castelinho - SABESP 2º Licitação": "Castelinho - SABESP (2ª Licitação)",
+        "restauracao__Cond. Palmas do Paiol - 2016 - Joanópolis VF": "Cond. Palmas do Paiol - Joanópolis VF (2016)",
+        "restauracao__Condominio Arco Iris - Atibaia - 2013": "Condomínio Arco-Íris - Atibaia (2013)",
+        "restauracao__Crippa Pinhalzinho - 2015": "Crippa - Pinhalzinho (2015)",
+        "restauracao__Cummins TNC - Joa": "Cummins - TNC - Joanópolis",
+        "restauracao__Curitibanos - SABESP 2º Licitação": "Curitibanos - SABESP (2ª Licitação)",
+        "restauracao__Eldorado - Joanópolis - 2020": "Eldorado - Joanópolis (2020)",
+        "restauracao__Fabrica de Blocos - Piracaia - 2012": "Fábrica de Blocos - Piracaia (2012)",
+        "restauracao__Fabrica_colchões Atibaia 2016": "Fábrica de Colchões - Atibaia (2016)",
+        "restauracao__Faja - SP Perus - 2022": "FAJA - Perus - SP (2022)",
+        "restauracao__Faja Rodeio 1": "FAJA - Rodeio 1",
+        "restauracao__Faja Rodeio 2": "FAJA - Rodeio 2",
+        "restauracao__Fase_I_Fazenda Porto_Feliz - SOS - Limeira": "Fase I - Fazenda Porto Feliz - SOS - Limeira",
+        "restauracao__Fase_I_IZ - SOS - Nova Odessa_corrigido": "Fase I - IZ - SOS - Nova Odessa",
+        "restauracao__Fase_II_IZ - SOS - Nova Odessa": "Fase II - IZ - SOS - Nova Odessa",
+        "restauracao__Faz_Boa_Esperanca - SOS - São Pedro": "Fazenda Boa Esperança - SOS - São Pedro",
+        "restauracao__Fazenda Carmelina (1879)": "Fazenda Carmelina (1879)",
+        "restauracao__Fazenda Carmelina (1880)": "Fazenda Carmelina (1880)",
+        "restauracao__Fazenda Carmelina (1881)": "Fazenda Carmelina (1881)",
+        "restauracao__Fazenda Modelo": "Fazenda Modelo",
+        "restauracao__Fazenda Vale das Flores": "Fazenda Vale das Flores",
+        "restauracao__Ford - Tatui - TGI": "Ford - Tatuí - TGI",
+        "restauracao__Gato Preto - Cajamar - FAJA - Recuperação Ambiental": "Gato Preto - Cajamar - FAJA",
+        "restauracao__Gato Preto Fase II - Cajamar - FAJA - Recuperação Ambiental": "Gato Preto (Fase II) - Cajamar - FAJA",
+        "restauracao__Geraldo - SABESP 2º Licitação": "Geraldo - SABESP (2ª Licitação)",
+        "restauracao__Iniciativa Verde_DaSerra": "Iniciativa Verde - Da Serra",
+        "restauracao__Itesp Franco da Rocha Faja  - Zizo": "ITESP - Franco da Rocha - FAJA - Zizo (Área 1)",
+        "restauracao__Itesp Franco da Rocha Faja - Zizo": "ITESP - Franco da Rocha - FAJA - Zizo (Área 2)",
+        "restauracao__Izaura - Salesopolis - Licitação Pref. 2016": "Izaura - Salesópolis - Licitação Pref. (2016)",
+        "restauracao__Kalil - Atibaia - Rodominas": "Kalil - Atibaia - Rodominas",
+        "restauracao__Licitação CODASP DAEE - 2015": "Licitação CODASP / DAEE (2015)",
+        "restauracao__Lot. Nova Oliveira - Extrema - Geoville": "Lot. Nova Oliveira - Extrema - Geoville",
+        "restauracao__Lua Nova - SABESP 2º Licitação": "Lua Nova - SABESP (2ª Licitação)",
+        "restauracao__Manancial Cantareira I": "Manancial Cantareira I",
+        "restauracao__Manancial Cantareira II (231)": "Manancial Cantareira II (231)",
+        "restauracao__Manancial Cantareira II (232)": "Manancial Cantareira II (232)",
+        "restauracao__Manancial Cantareira II (233)": "Manancial Cantareira II (233)",
+        "restauracao__Marco Gouveia - WWF - 2014": "Marco Gouveia - WWF (2014)",
+        "restauracao__Mario - Salesopolis - Licitação Pref. 2016": "Mário - Salesópolis - Licitação Pref. (2016)",
+        "restauracao__Morada do Gigante 1 - 2015": "Morada do Gigante 1 (2015)",
+        "restauracao__Nancy - Atibaia": "Nancy - Atibaia",
+        "restauracao__Orlando - WWF - 2014": "Orlando - WWF (2014)",
+        "restauracao__Padre - Campinas - SOS 2018": "Padre - Campinas - SOS (2018)",
+        "restauracao__Paulo Alves - Salesopolis - Licitação Pref. 2016": "Paulo Alves - Salesópolis - Licitação Pref. (2016)",
+        "restauracao__Paulo- TNC - Salesópolis 2020": "Paulo - TNC - Salesópolis (2020)",
+        "restauracao__Pepisco - 2018 - SP": "Pepsico - SP (2018)",
+        "restauracao__Piracaia - Lot. Mantiqueira 2015": "Piracaia - Lot. Mantiqueira (2015)",
+        "restauracao__Pontal SOS - 2019 - Piracaia": "Pontal SOS - Piracaia (2019)",
+        "restauracao__Rancho Katende": "Rancho Katendê",
+        "restauracao__Recanto Sole": "Recanto Solê",
+        "restauracao__Reserva AMME": "Reserva AMME",
+        "restauracao__Reserva Mantiqueira": "Reserva Mantiqueira",
+        "restauracao__Reserva Muriqui (2108)": "Reserva Muriqui (2108)",
+        "restauracao__Reserva Muriqui (2110)": "Reserva Muriqui (2110)",
+        "restauracao__Rio do Peixe": "P.E. Rio do Peixe",
+        "restauracao__Romeu - TNC - Salesópolis 2020_": "Romeu - TNC - Salesópolis (2020)",
+        "restauracao__Santa Maria - Joa - Área maior 2 ha": "Santa Maria - Joanópolis (Área > 2 ha)",
+        "restauracao__Santa Maria - Joa - Serraria 2014_2015": "Santa Maria - Joanópolis - Serraria (2014-2015)",
+        "restauracao__SAnta Maria das Pitangueiras - Geoville - Santa Branca": "Santa Maria das Pitangueiras - Geoville - Santa Branca",
+        "restauracao__São Francisco - SABESP 2º Licitação": "São Francisco - SABESP (2ª Licitação)",
+        "restauracao__Setuo Hishi - SABESP 2º Licitação": "Setuo Hishi - SABESP (2ª Licitação)",
+        "restauracao__Sitio Bella Luna": "Sítio Bella Luna",
+        "restauracao__Sitio Sao Joao (4553)": "Sítio São João (4553)",
+        "restauracao__Sitio Sao Joao (5666)": "Sítio São João (5666)",
+        "restauracao__Valinhos - Pedreira 1": "Valinhos - Pedreira 1",
+        "restauracao__Valinhos - Pedreira 2": "Valinhos - Pedreira 2",
+        "restauracao__Valinhos - Pedreira 3": "Valinhos - Pedreira 3",
+        "restauracao__veolia_guarulhos adensamento_": "Veolia - Guarulhos (Adensamento)",
+        "restauracao__veolia_guarulhos plantio total_": "Veolia - Guarulhos (Plantio Total)",
+        "restauracao__Viação Atibaia - Atibaia - 2019": "Viação Atibaia - Atibaia (2019)",
+        "restauracao__Visconde - SABESP 2º Licitação": "Visconde - SABESP (2ª Licitação)",
+        "restauracao__Zaida - 1º plantio pré DA SERRA": "Zaida - 1º Plantio pré-DA SERRA",
+        "restauracao__Zaida - 2º plantio": "Zaida - 2º Plantio",
+        "restauracao__Zaraplast 2024 ": "Zaraplast (2024)",
+        "restauracao__Zé Toto - Nazaré - 2017 - Recuperação Ambiental": "Zé Toto - Nazaré - Recuperação Ambiental (2017)"
+    };
+
+    // Índice normalizado para busca resiliente (ignora acentos, espaços e caracteres especiais)
+    function normalizeLookupKey(str) {
+        if (!str) return '';
+        return String(str)
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/[^a-z0-9]/g, "");
+    }
+
+    const PROJECT_DISPLAY_NAMES_NORM = {};
+    for (const [k, v] of Object.entries(PROJECT_DISPLAY_NAMES)) {
+        PROJECT_DISPLAY_NAMES_NORM[normalizeLookupKey(k)] = v;
+        const cleanK = k.replace(/^(restauracao|floresta_pronta|area_propriedade)__/, '');
+        PROJECT_DISPLAY_NAMES_NORM[normalizeLookupKey(cleanK)] = v;
+    }
+
+    // Regras automáticas para formatação elegante com acentuação e pontuação
+    function formatProjectDisplayName(str) {
+        if (!str) return '';
+        let s = String(str).trim();
+
+        // Substitui sublinhados por espaços e remove espaços extras
+        s = s.replace(/_/g, ' ').replace(/\s+/g, ' ').trim();
+
+        // Ajuste de licitações: 2º Licitação / 2o licitacao -> 2ª Licitação
+        s = s.replace(/(\d+)[ºoªa]?\s*licita[çc][ãa]o/gi, '$1ª Licitação');
+        s = s.replace(/SABESP\s*(\d+ª\s*Licitação)/gi, 'SABESP ($1)');
+
+        // Acentuação de palavras frequentes em projetos, municípios e propriedades
+        const wordReplacements = [
+            [/\bAguas\b/gi, 'Águas'],
+            [/\bSitio\b/gi, 'Sítio'],
+            [/\bSao Joao\b/gi, 'São João'],
+            [/\bSao Pedro\b/gi, 'São Pedro'],
+            [/\bSao Paulo\b/gi, 'São Paulo'],
+            [/\bSao Francisco\b/gi, 'São Francisco'],
+            [/\bSalesopolis\b/gi, 'Salesópolis'],
+            [/\bNazare\b/gi, 'Nazaré'],
+            [/\bJaguariuna\b/gi, 'Jaguariúna'],
+            [/\bJacarei\b/gi, 'Jacareí'],
+            [/\bTatui\b/gi, 'Tatuí'],
+            [/\bJoanopolis\b/gi, 'Joanópolis'],
+            [/\bBraganca\b/gi, 'Bragança'],
+            [/\bEsperanca\b/gi, 'Esperança'],
+            [/\bFabrica\b/gi, 'Fábrica'],
+            [/\bColchoes\b/gi, 'Colchões'],
+            [/\bCondominio\b/gi, 'Condomínio'],
+            [/\bArco Iris\b/gi, 'Arco-Íris'],
+            [/\bTiete\b/gi, 'Tietê'],
+            [/\bKatende\b/gi, 'Katendê'],
+            [/\bSole\b/gi, 'Solê'],
+            [/\bQuinhao\b/gi, 'Quinhão'],
+            [/\bDagua\b/gi, "D'Água"],
+            [/\bAntonio\b/gi, 'Antônio'],
+            [/\bMario\b/gi, 'Mário'],
+            [/\bAcacio\b/gi, 'Acácio'],
+            [/\bArea\b/gi, 'Área'],
+            [/\bLicitacao\b/gi, 'Licitação'],
+            [/\bRestauracao\b/gi, 'Restauração'],
+            [/\bRecuperacao\b/gi, 'Recuperação'],
+            [/\bEcologica\b/gi, 'Ecológica'],
+            [/\bAmbiental\b/gi, 'Ambiental'],
+            [/\bMemoria\b/gi, 'Memória'],
+            [/\bViacao\b/gi, 'Viação'],
+            [/\bJoa\b/gi, 'Joanópolis'],
+            [/\bPta\b/gi, 'Paulista']
+        ];
+
+        for (const [rgx, rep] of wordReplacements) {
+            s = s.replace(rgx, rep);
+        }
+
+        // Padronização de siglas em maiúsculas
+        const acronyms = ['SABESP', 'WWF', 'SOS', 'TNC', 'CDHU', 'DAEE', 'ITESP', 'FAJA', 'PCJ', 'PE', 'APP', 'IZ'];
+        acronyms.forEach(acro => {
+            const re = new RegExp(`\\b${acro}\\b`, 'gi');
+            s = s.replace(re, acro);
+        });
+
+        // Casos específicos de pontuação
+        s = s.replace(/\bPE Rio do Peixe\b/g, 'P.E. Rio do Peixe');
+        s = s.replace(/\s*-\s*(\d{4})$/, ' ($1)');
+
+        return s;
+    }
+
     // Format project names for display
     function formatProjectName(key) {
-        let clean = key.replace(/^(restauracao|floresta_pronta|area_propriedade)__/, '');
+        if (!key) return '';
+
+        // 1. Busca direta na tabela exata
+        if (PROJECT_DISPLAY_NAMES[key]) return PROJECT_DISPLAY_NAMES[key];
+
+        const clean = key.replace(/^(restauracao|floresta_pronta|area_propriedade)__/, '').trim();
+        if (PROJECT_DISPLAY_NAMES[clean]) return PROJECT_DISPLAY_NAMES[clean];
+
+        // 2. Busca pela chave normalizada (independe de acentuação, espaços e símbolos)
+        const normKey = normalizeLookupKey(key);
+        if (PROJECT_DISPLAY_NAMES_NORM[normKey]) return PROJECT_DISPLAY_NAMES_NORM[normKey];
+
+        const normClean = normalizeLookupKey(clean);
+        if (PROJECT_DISPLAY_NAMES_NORM[normClean]) return PROJECT_DISPLAY_NAMES_NORM[normClean];
+
+        // 3. Padrão 'projeto_X'
         if (clean.startsWith('projeto_')) {
             const num = clean.replace('projeto_', '');
             return `Projeto ${num}`;
         }
-        return clean.replace(/_/g, ' ');
+
+        // 4. Fallback inteligente
+        return formatProjectDisplayName(clean);
     }
 
     // Helper: Calculate polygon area in Hectares
@@ -1185,23 +1422,82 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function formatAttributeKey(key) {
         if (!key) return '';
-        // Normaliza caracteres corrompidos comuns de codificação (ex: ÂÁrea -> Área, ?rea -> Área)
-        return key
+        let clean = key
             .replace(/Â/g, '')
             .replace(/Ã/g, 'Á')
             .replace(/\?rea/gi, 'Área')
             .replace(/^rea\b/gi, 'Área')
             .trim();
+
+        // Mapeamento padronizado de chaves de atributos com acentuação e pontuação corretas
+        const keyMap = {
+            'nome do projeto': 'Nome do Projeto',
+            'propriedade': 'Propriedade',
+            'tipo': 'Tipo',
+            'ano de implantacao': 'Ano de Implantação',
+            'ano de implantação': 'Ano de Implantação',
+            'metodologia de restauracao': 'Metodologia de Restauração',
+            'metodologia de restauração': 'Metodologia de Restauração',
+            'monitoramento': 'Monitoramento',
+            'municipio': 'Município',
+            'município': 'Município',
+            'ugrhi': 'UGRHI',
+            'ughri': 'UGRHI',
+            'regiao hidrografica': 'Região Hidrográfica',
+            'região hidrográfica': 'Região Hidrográfica',
+            'status do projeto': 'Situação do Projeto',
+            'status': 'Situação do Projeto',
+            'situacao': 'Situação do Projeto',
+            'situação': 'Situação do Projeto',
+            'fotos do projeto': 'Fotos do Projeto',
+            'area (ha)': 'Área (ha)',
+            'área (ha)': 'Área (ha)',
+            'area': 'Área (ha)',
+            'área': 'Área (ha)'
+        };
+
+        const normK = clean.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+        if (keyMap[normK]) return keyMap[normK];
+        if (keyMap[clean.toLowerCase()]) return keyMap[clean.toLowerCase()];
+        return clean;
     }
 
-    function formatAttributeValue(val) {
+    function formatAttributeValue(val, key = '', projName = '') {
         if (val === null || val === undefined || val === '') {
             return '<span style="color: #94a3b8;">-</span>';
         }
         if (typeof val === 'number') {
             return val.toLocaleString('pt-BR', { maximumFractionDigits: 4 });
         }
-        return String(val);
+        let str = String(val).trim();
+
+        const normK = (key || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        if (normK.includes('nome')) {
+            return projName || formatProjectDisplayName(str);
+        }
+        if (normK.includes('propriedade')) {
+            return formatProjectDisplayName(str);
+        }
+
+        // Correção de topônimos e termos frequentes sem acento
+        str = str
+            .replace(/\bSalesopolis\b/gi, 'Salesópolis')
+            .replace(/\bNazare Paulista\b/gi, 'Nazaré Paulista')
+            .replace(/\bNazare\b/gi, 'Nazaré')
+            .replace(/\bJaguariuna\b/gi, 'Jaguariúna')
+            .replace(/\bJacarei\b/gi, 'Jacareí')
+            .replace(/\bTatui\b/gi, 'Tatuí')
+            .replace(/\bSao Pedro\b/gi, 'São Pedro')
+            .replace(/\bSao Paulo\b/gi, 'São Paulo')
+            .replace(/\bSao Francisco Xavier\b/gi, 'São Francisco Xavier')
+            .replace(/\bJoanopolis\b/gi, 'Joanópolis')
+            .replace(/\bBraganca Paulista\b/gi, 'Bragança Paulista')
+            .replace(/\bRestauracao\b/gi, 'Restauração')
+            .replace(/\bRecuperacao\b/gi, 'Recuperação')
+            .replace(/\bEcologica\b/gi, 'Ecológica')
+            .replace(/(\d+)[ºoªa]?\s*licita[çc][ãa]o/gi, '$1ª Licitação');
+
+        return str;
     }
 
     function createPopupContent(props, projName, color) {
@@ -1218,7 +1514,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 content += `
                     <tr>
                         <th>${formatAttributeKey(key)}</th>
-                        <td>${formatAttributeValue(val)}</td>
+                        <td>${formatAttributeValue(val, key, projName)}</td>
                     </tr>
                 `;
             }
