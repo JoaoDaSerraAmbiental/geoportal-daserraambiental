@@ -112,6 +112,23 @@ def build_dataset():
     with open(out_path, 'w', encoding='utf-8') as jsf:
         jsf.write('window.GEOPORTAL_DATA = ' + json.dumps(geoportal_data, ensure_ascii=False) + ';')
 
+    # Update cache-buster timestamp in index.html so browsers instantly fetch the latest geojson_data.js
+    html_path = os.path.join(base_dir, 'index.html')
+    if os.path.exists(html_path):
+        try:
+            import re
+            import time
+            timestamp = int(time.time())
+            with open(html_path, 'r', encoding='utf-8') as hf:
+                html_content = hf.read()
+            new_html = re.sub(r'geojson_data\.js(\?v=[^\s"\'\>]+)?', f'geojson_data.js?v={timestamp}', html_content)
+            if new_html != html_content:
+                with open(html_path, 'w', encoding='utf-8') as hf:
+                    hf.write(new_html)
+                print(f"[CACHE-BUSTER] index.html atualizado com v={timestamp}")
+        except Exception as e:
+            print(f"[AVISO] Falha ao atualizar cache-buster em index.html: {e}")
+
     total_proj = len(geoportal_data['projetos'])
     qa_count = sum(1 for p in geoportal_data['projetos'].values() if 'quadro_area' in p)
     print(f"\n[SUCESSO] geojson_data.js gerado com sucesso!")

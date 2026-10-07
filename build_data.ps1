@@ -10,19 +10,25 @@ $pyScript  = Join-Path $baseDir "build_data.py"
 
 # 1. Tenta executar o script Python (build_data.py), que inclui processamento de Quadros de Área
 if (Test-Path $pyScript) {
-    if (Get-Command py -ErrorAction SilentlyContinue) {
-        Write-Host "Executando build_data.py via 'py'..."
-        & py $pyScript
-        if ($LASTEXITCODE -eq 0) { exit 0 }
-    }
-    if (Get-Command python -ErrorAction SilentlyContinue) {
-        Write-Host "Executando build_data.py via 'python'..."
-        & python $pyScript
-        if ($LASTEXITCODE -eq 0) { exit 0 }
+    # Procura por Python no PATH ou na pasta do usuário (AppData)
+    $pyExecs = @(
+        (Get-Command py -ErrorAction SilentlyContinue),
+        (Get-Command python -ErrorAction SilentlyContinue),
+        (Get-ChildItem "$env:LOCALAPPDATA\Python\*\python.exe" -ErrorAction SilentlyContinue | Select-Object -First 1),
+        (Get-ChildItem "$env:LOCALAPPDATA\Programs\Python\*\python.exe" -ErrorAction SilentlyContinue | Select-Object -First 1)
+    ) | Where-Object { $_ }
+
+    foreach ($pyCmd in $pyExecs) {
+        $pyPath = if ($pyCmd.Source) { $pyCmd.Source } else { $pyCmd.FullName }
+        if (Test-Path $pyPath) {
+            Write-Host "Executando build_data.py via '$pyPath'..."
+            & $pyPath $pyScript
+            if ($LASTEXITCODE -eq 0) { exit 0 }
+        }
     }
 }
 
-Write-Host "Executando compilação nativa em PowerShell com busca recursiva..."
+Write-Host "Executando compilação nativa em PowerShell com busca recursiva e vinculação de QA..."
 
 $categorias = [ordered]@{
     "Restaura$(([char]0xE7))$(([char]0xE3))o" = "restauracao"
@@ -32,11 +38,38 @@ $categorias = [ordered]@{
 
 function Get-FileContentShared($path) {
     $fs = [System.IO.FileStream]::new($path, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
-    $sr = [System.StreamReader]::new($fs, [System.Text.Encoding]::UTF8)
+    $sr = [System.IO.StreamReader]::new($fs, [System.Text.Encoding]::UTF8)
     $text = $sr.ReadToEnd()
     $sr.Close()
     $fs.Close()
     return $text
+}
+
+# 1. Pre-scan todos os arquivos de Quadros de Área no PowerShell
+$qaMap = @{}
+$qaFiles = Get-ChildItem (Join-Path $baseDir "Limites de Projetos") -Recurse -Filter "*.geojson" | 
+    Where-Object { $_.FullName -match "Quadros de ($(([char]0xC1))|a)rea|quadro" }
+
+foreach ($qf in $qaFiles) {
+    $qname = [System.IO.Path]::GetFileNameWithoutExtension($qf.Name)
+    $cleanName = $qname -replace '(?i)^qa\s*', ''
+    $normName = $cleanName.ToLower().Trim()
+    try {
+        $jsonText = Get-FileContentShared $qf.FullName
+        $qObj = $jsonText | ConvertFrom-Json
+        if ($qObj.features) {
+            $rows = @()
+            foreach ($feat in $qObj.features) {
+                if ($feat.properties) {
+                    $rows += $feat.properties
+                }
+            }
+            if ($rows.Count -gt 0) {
+                $qaMap[$normName] = ($rows | ConvertTo-Json -Compress)
+                Write-Host " [QA LINKED PS] Quadro de Área -> $cleanName ($($rows.Count) linhas)"
+            }
+        }
+    } catch {}
 }
 
 $sb = [System.Text.StringBuilder]::new()
@@ -60,11 +93,16 @@ foreach ($catFolder in $categorias.Keys) {
     foreach ($f in $projFiles) {
         $rawKey = [System.IO.Path]::GetFileNameWithoutExtension($f.Name)
         $key = "${catKey}__${rawKey}"
+        $normRaw = $rawKey.ToLower().Trim()
         try {
             $content = (Get-FileContentShared $f.FullName).Trim()
 
-            # Injeta o campo "categoria" dentro do FeatureCollection
-            $content = $content -replace '"type"\s*:\s*"FeatureCollection"', "`"type`":`"FeatureCollection`",`"categoria`":`"$catKey`""
+            if ($qaMap.ContainsKey($normRaw)) {
+                $qaStr = $qaMap[$normRaw]
+                $content = $content -replace '"type"\s*:\s*"FeatureCollection"', "`"type`":`"FeatureCollection`",`"categoria`":`"$catKey`",`"quadro_area`":$qaStr"
+            } else {
+                $content = $content -replace '"type"\s*:\s*"FeatureCollection"', "`"type`":`"FeatureCollection`",`"categoria`":`"$catKey`""
+            }
 
             if (-not $firstProj) { [void]$sb.Append(",") }
             $firstProj = $false
@@ -98,5 +136,18 @@ if (Test-Path $outrosDir) {
 [void]$sb.Append("}};")
 
 [System.IO.File]::WriteAllText($outPath, $sb.ToString(), [System.Text.Encoding]::UTF8)
+
+# Update cache buster timestamp in index.html
+$htmlPath = Join-Path $baseDir "index.html"
+if (Test-Path $htmlPath) {
+    $ts = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
+    $htmlContent = Get-Content $htmlPath -Raw -Encoding UTF8
+    $newHtml = $htmlContent -replace 'geojson_data\.js(\?v=[^\s"''\>]+)?', "geojson_data.js?v=$ts"
+    if ($newHtml -ne $htmlContent) {
+        [System.IO.File]::WriteAllText($htmlPath, $newHtml, [System.Text.Encoding]::UTF8)
+        Write-Host " [CACHE-BUSTER] index.html atualizado com v=$ts"
+    }
+}
+
 $sizeMb = [math]::Round((Get-Item $outPath).Length / 1MB, 2)
 Write-Host "`n[SUCESSO] geojson_data.js gerado com sucesso! Tamanho: $sizeMb MB`n"
