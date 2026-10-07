@@ -1157,6 +1157,47 @@ path.leaflet-interactive:focus-visible {
     font-weight: 700;
 }
 
+/* Quadro de Áreas Table in Popup */
+.popup-qa-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.78rem;
+    margin-top: 6px;
+    margin-bottom: 8px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    background: #ffffff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.popup-qa-table th {
+    background: var(--primary-color);
+    color: #ffffff;
+    padding: 6px 8px;
+    font-weight: 700;
+    font-size: 0.73rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.popup-qa-table td {
+    padding: 5px 8px;
+    border-bottom: 1px solid #f1f5f9;
+    color: var(--text-primary);
+}
+
+.popup-qa-table tr:nth-child(even) {
+    background-color: #f8fafc;
+}
+
+.popup-qa-table tr.qa-row-total {
+    background-color: #ecfdf5;
+    font-weight: 700;
+    color: var(--primary-color);
+    border-top: 1.5px solid #a7f3d0;
+}
+
 /* Tabela de atributos completa para Áreas de Projetos */
 .project-popup {
     min-width: 270px;

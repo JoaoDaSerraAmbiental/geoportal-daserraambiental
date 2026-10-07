@@ -2,9 +2,10 @@
 Geoportal - Da Serra Ambiental
 Automated Data Build Script (build_data.py)
 
-This script scans 'Limites de Projetos' (supporting sub-category folders)
-and 'Outros Limites' directories, validates all GeoJSON files, and outputs
-a bundled 'geojson_data.js' file for WebGIS deployment.
+This script recursively scans 'Limites de Projetos' (supporting sub-category folders
+like Restauração, Floresta Pronta/Limites de Propriedades, Área da Propriedade, and Quadros de Área)
+and 'Outros Limites' directories, links Quadros de Área tables to their matching properties,
+validates all GeoJSON files, and outputs a bundled 'geojson_data.js' file for WebGIS deployment.
 """
 
 import json
@@ -37,31 +38,66 @@ def build_dataset():
         'outros': {}
     }
 
-    # Process Limites de Projetos (supporting subfolder categories)
+    qa_data_map = {}
+
+    # 1. Pre-scan all 'Quadros de Área' files in Limites de Projetos
     if os.path.exists(projetos_dir):
         for root, dirs, files in os.walk(projetos_dir):
+            if 'quadro' in normalize_text(root):
+                for gfile in files:
+                    if gfile.lower().endswith('.geojson'):
+                        qname = os.path.splitext(gfile)[0]
+                        clean_name = qname.replace('QA ', '').replace('qa ', '').strip()
+                        filepath = os.path.join(root, gfile)
+                        try:
+                            with open(filepath, 'r', encoding='utf-8') as f:
+                                qdata = json.load(f)
+                            rows = [feat.get('properties', {}) for feat in qdata.get('features', []) if feat.get('properties')]
+                            if rows:
+                                qa_data_map[normalize_text(clean_name)] = rows
+                                print(f"[QA LINKED] Quadro de Área -> {clean_name} ({len(rows)} linhas)")
+                        except Exception as e:
+                            print(f"[ERRO QA] Falha ao carregar {gfile}: {e}")
+
+    # 2. Process Limites de Projetos (ignoring 'Quadros de Área' folder for spatial layers)
+    if os.path.exists(projetos_dir):
+        for root, dirs, files in os.walk(projetos_dir):
+            if 'quadro' in normalize_text(root):
+                continue  # Skip QA folder from being added as spatial project layers
+
             geojsons = [f for f in files if f.lower().endswith('.geojson')]
             if geojsons:
                 rel_path = os.path.relpath(root, projetos_dir)
-                folder_name = os.path.basename(root) if rel_path != '.' else 'Restauração'
-                cat_key = get_category_key(folder_name)
+                top_folder = rel_path.replace('\\', '/').split('/')[0] if rel_path != '.' else 'Restauração'
+                cat_key = get_category_key(top_folder)
 
                 for gfile in sorted(geojsons):
                     raw_key = os.path.splitext(gfile)[0]
-                    # Format key with category prefix
                     key = f"{cat_key}__{raw_key}"
                     filepath = os.path.join(root, gfile)
                     try:
                         with open(filepath, 'r', encoding='utf-8') as f:
                             data = json.load(f)
-                            if isinstance(data, dict):
-                                data['categoria'] = cat_key
-                            geoportal_data['projetos'][key] = data
-                        print(f"[OK] Projeto [{cat_key}] -> {key}")
-                    except Exception as e:
-                        print(f"[ERRO] Falha ao carregar {gfile} em {folder_name}: {e}")
+                        if isinstance(data, dict):
+                            data['categoria'] = cat_key
+                            
+                            # Attach matching Quadro de Área data if present
+                            norm_raw = normalize_text(raw_key)
+                            matched_qa = qa_data_map.get(norm_raw)
+                            if matched_qa:
+                                data['quadro_area'] = matched_qa
+                                for feat in data.get('features', []):
+                                    if 'properties' not in feat or feat['properties'] is None:
+                                        feat['properties'] = {}
+                                    feat['properties']['_quadro_area'] = matched_qa
 
-    # Process Outros Limites
+                        geoportal_data['projetos'][key] = data
+                        has_qa_str = f" [COM QUADRO DE ÁREAS ({len(data['quadro_area'])} temas)]" if 'quadro_area' in data else ""
+                        print(f"[OK] Projeto [{cat_key}] -> {key}{has_qa_str}")
+                    except Exception as e:
+                        print(f"[ERRO] Falha ao carregar {gfile} em {root}: {e}")
+
+    # 3. Process Outros Limites
     if os.path.exists(outros_dir):
         for filepath in sorted(glob.glob(os.path.join(outros_dir, '*.geojson'))):
             key = os.path.splitext(os.path.basename(filepath))[0]
@@ -78,8 +114,9 @@ def build_dataset():
         jsf.write('window.GEOPORTAL_DATA = ' + json.dumps(geoportal_data, ensure_ascii=False) + ';')
 
     total_proj = len(geoportal_data['projetos'])
+    qa_count = sum(1 for p in geoportal_data['projetos'].values() if 'quadro_area' in p)
     print(f"\n[SUCESSO] geojson_data.js gerado com sucesso!")
-    print(f"Total Projetos: {total_proj} | Total Outros Limites: {len(geoportal_data['outros'])}")
+    print(f"Total Projetos: {total_proj} ({qa_count} com Quadro de Áreas) | Total Outros Limites: {len(geoportal_data['outros'])}")
 
 if __name__ == '__main__':
     build_dataset()

@@ -1,0 +1,10 @@
+{
+"type": "FeatureCollection",
+"name": "QA Recanto do Saua",
+"features": [
+{ "type": "Feature", "properties": { "Tema": "Propriedade", "Área (ha)": 261.67, "%": 100.0 }, "geometry": null },
+{ "type": "Feature", "properties": { "Tema": "Reserva Legal", "Área (ha)": 52.33, "%": 20.0 }, "geometry": null },
+{ "type": "Feature", "properties": { "Tema": "Vegetação Nativa", "Área (ha)": 239.52, "%": 91.54 }, "geometry": null },
+{ "type": "Feature", "properties": { "Tema": "Vegetação Excedente", "Área (ha)": 187.19, "%": 71.54 }, "geometry": null }
+]
+}

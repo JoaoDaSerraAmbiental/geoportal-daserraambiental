@@ -1,0 +1,10 @@
+{
+"type": "FeatureCollection",
+"name": "QA Sitio Ernane",
+"features": [
+{ "type": "Feature", "properties": { "Tema": "Propriedade", "Área (ha)": 42.62, "%": 100.0 }, "geometry": null },
+{ "type": "Feature", "properties": { "Tema": "Reserva Legal", "Área (ha)": 8.52, "%": 20.0 }, "geometry": null },
+{ "type": "Feature", "properties": { "Tema": "Vegetação Nativa", "Área (ha)": 37.49, "%": 87.96 }, "geometry": null },
+{ "type": "Feature", "properties": { "Tema": "Vegetação Excedente", "Área (ha)": 28.97, "%": 67.96 }, "geometry": null }
+]
+}

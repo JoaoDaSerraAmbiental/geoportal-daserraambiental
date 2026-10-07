@@ -1,0 +1,10 @@
+{
+"type": "FeatureCollection",
+"name": "QA Sitio Sao Benedito",
+"features": [
+{ "type": "Feature", "properties": { "Tema": "Limites da Propriedade", "Área (ha)": 27.86, "%": 100.0 }, "geometry": null },
+{ "type": "Feature", "properties": { "Tema": "Reserva Legal", "Área (ha)": 5.57, "%": 20.0 }, "geometry": null },
+{ "type": "Feature", "properties": { "Tema": "Vegetação Nativa", "Área (ha)": 22.9, "%": 82.2 }, "geometry": null },
+{ "type": "Feature", "properties": { "Tema": "Vegetação Excedente", "Área (ha)": 17.33, "%": 62.2 }, "geometry": null }
+]
+}

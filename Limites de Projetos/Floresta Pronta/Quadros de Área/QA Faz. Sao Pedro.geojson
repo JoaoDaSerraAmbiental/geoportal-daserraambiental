@@ -1,0 +1,10 @@
+{
+"type": "FeatureCollection",
+"name": "QA Faz",
+"features": [
+{ "type": "Feature", "properties": { "Tema": "Propriedade", "Área (ha)": 288.93, "%": 100.0 }, "geometry": null },
+{ "type": "Feature", "properties": { "Tema": "Reserva Legal", "Área (ha)": 57.79, "%": 20.0 }, "geometry": null },
+{ "type": "Feature", "properties": { "Tema": "Vegetação Nativa", "Área (ha)": 183.39, "%": 63.47 }, "geometry": null },
+{ "type": "Feature", "properties": { "Tema": "Vegetação Excedente", "Área (ha)": 125.6, "%": 43.47 }, "geometry": null }
+]
+}

@@ -1,0 +1,10 @@
+{
+"type": "FeatureCollection",
+"name": "QA Sitio Marilia",
+"features": [
+{ "type": "Feature", "properties": { "Tema": "Limites da Propriedade", "Área (ha)": 65.93, "%": 100.0 }, "geometry": null },
+{ "type": "Feature", "properties": { "Tema": "Reserva Legal (RL)", "Área (ha)": 13.186, "%": 20.0 }, "geometry": null },
+{ "type": "Feature", "properties": { "Tema": "Vegetação Nativa", "Área (ha)": 28.95, "%": 43.91 }, "geometry": null },
+{ "type": "Feature", "properties": { "Tema": "Vegetação Excedente", "Área (ha)": 15.764, "%": 23.91 }, "geometry": null }
+]
+}

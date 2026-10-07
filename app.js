@@ -458,7 +458,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
 
                 // Attach Popup
-                layer.bindPopup(() => createPopupContent(feature.properties, projName, getFeatureColor(feature, color)));
+                layer.bindPopup(() => createPopupContent(feature.properties, projName, getFeatureColor(feature, color), data.quadro_area || (feature.properties ? feature.properties._quadro_area : null)));
             }
         });
 
@@ -2001,16 +2001,55 @@ document.addEventListener('DOMContentLoaded', () => {
         return str;
     }
 
-    function createPopupContent(props, projName, color) {
+    function createPopupContent(props, projName, color, quadroArea = null) {
         let content = `<div class="popup-container project-popup">`;
         content += `<div class="popup-title" style="color: ${color}; border-left: 4px solid ${color}; padding-left: 8px;">${projName}</div>`;
-        content += `<div class="popup-subtitle-info"><i class="fa-solid fa-table"></i> Tabela de Atributos</div>`;
 
-        content += `<table class="popup-attribute-table"><tbody>`;
-        const entries = Object.entries(props || {});
-        if (entries.length === 0) {
-            content += `<tr><td colspan="2" style="text-align: center; color: #94a3b8; padding: 8px;">Sem atributos cadastrados</td></tr>`;
-        } else {
+        // Check for attached Quadro de Áreas
+        const qaData = quadroArea || (props ? props._quadro_area : null);
+
+        if (qaData && Array.isArray(qaData) && qaData.length > 0) {
+            content += `<div class="popup-subtitle-info" style="margin-top: 10px; color: var(--primary-color); font-weight: 700; display: flex; align-items: center; gap: 6px;">
+                <i class="fa-solid fa-chart-pie" style="color: var(--primary-color);"></i> Quadro de Áreas (Uso do Solo)
+            </div>`;
+            content += `<table class="popup-qa-table">
+                <thead>
+                    <tr>
+                        <th style="text-align: left;">Tema / Classe</th>
+                        <th style="text-align: right;">Área (ha)</th>
+                        <th style="text-align: right;">%</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+
+            qaData.forEach(row => {
+                const tema = row['Tema'] || row['tema'] || row['TEMA'] || '-';
+                const area = row['Área (ha)'] || row['area (ha)'] || row['Area (ha)'] || row['Área'] || 0;
+                const perc = row['%'] || row['porcentagem'] || row['Porcentagem'] || 0;
+
+                const normTema = tema.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                const isTotal = normTema.includes('propriedade') || normTema.includes('limite');
+
+                const areaNum = typeof area === 'number' ? area : parseFloat(area) || 0;
+                const percNum = typeof perc === 'number' ? perc : parseFloat(perc) || 0;
+
+                content += `
+                    <tr class="${isTotal ? 'qa-row-total' : ''}">
+                        <td><strong>${formatAttributeKey(tema)}</strong></td>
+                        <td style="text-align: right; font-weight: 600;">${areaNum.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})} ha</td>
+                        <td style="text-align: right; font-weight: 600;">${percNum.toLocaleString('pt-BR', {minimumFractionDigits: 1, maximumFractionDigits: 2})}%</td>
+                    </tr>
+                `;
+            });
+
+            content += `</tbody></table>`;
+        }
+
+        // Tabela de atributos convencionais (filtra _quadro_area)
+        const entries = Object.entries(props || {}).filter(([k]) => k !== '_quadro_area');
+        if (entries.length > 0) {
+            content += `<div class="popup-subtitle-info" style="margin-top: 10px;"><i class="fa-solid fa-table"></i> Tabela de Atributos</div>`;
+            content += `<table class="popup-attribute-table"><tbody>`;
             for (const [key, val] of entries) {
                 content += `
                     <tr>
@@ -2019,8 +2058,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     </tr>
                 `;
             }
+            content += `</tbody></table>`;
+        } else if (!qaData) {
+            content += `<div class="popup-subtitle-info"><i class="fa-solid fa-table"></i> Tabela de Atributos</div>`;
+            content += `<table class="popup-attribute-table"><tbody><tr><td colspan="2" style="text-align: center; color: #94a3b8; padding: 8px;">Sem atributos cadastrados</td></tr></tbody></table>`;
         }
-        content += `</tbody></table>`;
+
         content += `</div>`;
         return content;
     }

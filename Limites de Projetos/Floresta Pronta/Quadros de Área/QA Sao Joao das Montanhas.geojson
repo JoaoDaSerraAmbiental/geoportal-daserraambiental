@@ -1,0 +1,10 @@
+{
+"type": "FeatureCollection",
+"name": "QA Sao Joao das Montanhas",
+"features": [
+{ "type": "Feature", "properties": { "Tema": "Limites da Propriedade", "Área (ha)": 140.37, "%": 100.0 }, "geometry": null },
+{ "type": "Feature", "properties": { "Tema": "Reserva Legal (RL)", "Área (ha)": 28.07, "%": 20.0 }, "geometry": null },
+{ "type": "Feature", "properties": { "Tema": "Vegetação Nativa", "Área (ha)": 76.04, "%": 54.17 }, "geometry": null },
+{ "type": "Feature", "properties": { "Tema": "Vegetação Remanescente", "Área (ha)": 47.97, "%": 35.6 }, "geometry": null }
+]
+}

@@ -1,0 +1,10 @@
+{
+"type": "FeatureCollection",
+"name": "QA Sitio Alvorada",
+"features": [
+{ "type": "Feature", "properties": { "Tema": "Propriedade", "Área (ha)": 37.5, "%": 100.0 }, "geometry": null },
+{ "type": "Feature", "properties": { "Tema": "Reserva Legal", "Área (ha)": 7.5, "%": 20.0 }, "geometry": null },
+{ "type": "Feature", "properties": { "Tema": "Vegetação Nativa", "Área (ha)": 36.46, "%": 97.23 }, "geometry": null },
+{ "type": "Feature", "properties": { "Tema": "Vegetação Excedente", "Área (ha)": 28.96, "%": 77.23 }, "geometry": null }
+]
+}
