@@ -385,7 +385,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Cor fixa por categoria
     const categoryColor = {
         restauracao:           '#29ff1e',  // verde claro
-        floresta_pronta:       '#01a300',  // verde escuro (limites da propriedade em floresta pronta)
+        floresta_pronta:       '#dc2626',  // vermelho (limites da propriedade em floresta pronta)
         floresta_mata_nativa:  '#15803d',  // verde mata nativa / florestal
         area_propriedade:      '#dc2626'   // vermelho
     };
@@ -899,15 +899,36 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateFooterStats() {
         let restauracaoHa = 0;
         let florestaHa = 0;
+        const processedFlorestaProps = new Set();
 
         Object.values(projectLayers).forEach(p => {
-            if (p.visible && p.areaHa) {
-                const area = parseFloat(p.areaHa);
-                if (!isNaN(area)) {
-                    if (p.categoria === 'restauracao') {
-                        restauracaoHa += area;
-                    } else if (p.categoria === 'floresta_pronta') {
-                        florestaHa += area;
+            if (p.visible) {
+                if (p.categoria === 'restauracao') {
+                    if (p.areaHa) {
+                        const area = parseFloat(p.areaHa);
+                        if (!isNaN(area)) restauracaoHa += area;
+                    }
+                } else if (p.categoria === 'floresta_pronta' || p.categoria === 'floresta_mata_nativa') {
+                    const cleanName = p.key.replace(/^(floresta_pronta|floresta_mata_nativa)__/, '').trim();
+                    if (!processedFlorestaProps.has(cleanName)) {
+                        processedFlorestaProps.add(cleanName);
+
+                        // Busca o quadro_area vinculado à propriedade
+                        const propKey = `floresta_pronta__${cleanName}`;
+                        const propLayer = projectLayers[propKey] || p;
+                        const qa = (propLayer.data && propLayer.data.quadro_area) || propLayer.quadro_area;
+
+                        if (qa && Array.isArray(qa)) {
+                            const excRow = qa.find(row => {
+                                const tema = String(row.Tema || row.tema || row.TEMA || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                                return tema.includes('excedente');
+                            });
+                            if (excRow) {
+                                const val = excRow['Área (ha)'] || excRow['area (ha)'] || excRow['Area (ha)'] || excRow['Área'] || excRow['area'] || 0;
+                                const numVal = typeof val === 'number' ? val : (parseFloat(String(val).replace(',', '.')) || 0);
+                                if (!isNaN(numVal)) florestaHa += numVal;
+                            }
+                        }
                     }
                 }
             }
