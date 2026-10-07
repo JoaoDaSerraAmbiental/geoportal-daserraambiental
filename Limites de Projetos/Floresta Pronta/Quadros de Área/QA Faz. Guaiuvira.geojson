@@ -1,7 +1,6 @@
 {
 "type": "FeatureCollection",
 "name": "QA Faz",
-                                                                                                                                   
 "features": [
 { "type": "Feature", "properties": { "Tema": "Limites da Propriedade", "Área (ha)": 1020.26, "%": 100.0 }, "geometry": null },
 { "type": "Feature", "properties": { "Tema": "Reserva Legal", "Área (ha)": 204.05, "%": 20.0 }, "geometry": null },
