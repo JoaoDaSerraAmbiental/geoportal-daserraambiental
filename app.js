@@ -2045,23 +2045,25 @@ document.addEventListener('DOMContentLoaded', () => {
             content += `</tbody></table>`;
         }
 
-        // Tabela de atributos convencionais (filtra _quadro_area)
-        const entries = Object.entries(props || {}).filter(([k]) => k !== '_quadro_area');
-        if (entries.length > 0) {
-            content += `<div class="popup-subtitle-info" style="margin-top: 10px;"><i class="fa-solid fa-table"></i> Tabela de Atributos</div>`;
-            content += `<table class="popup-attribute-table"><tbody>`;
-            for (const [key, val] of entries) {
-                content += `
-                    <tr>
-                        <th>${formatAttributeKey(key)}</th>
-                        <td>${formatAttributeValue(val, key, projName)}</td>
-                    </tr>
-                `;
+        // Tabela de atributos convencionais (exibida apenas quando NÃO houver Quadro de Áreas)
+        if (!qaData) {
+            const entries = Object.entries(props || {}).filter(([k]) => k !== '_quadro_area');
+            if (entries.length > 0) {
+                content += `<div class="popup-subtitle-info" style="margin-top: 10px;"><i class="fa-solid fa-table"></i> Tabela de Atributos</div>`;
+                content += `<table class="popup-attribute-table"><tbody>`;
+                for (const [key, val] of entries) {
+                    content += `
+                        <tr>
+                            <th>${formatAttributeKey(key)}</th>
+                            <td>${formatAttributeValue(val, key, projName)}</td>
+                        </tr>
+                    `;
+                }
+                content += `</tbody></table>`;
+            } else {
+                content += `<div class="popup-subtitle-info"><i class="fa-solid fa-table"></i> Tabela de Atributos</div>`;
+                content += `<table class="popup-attribute-table"><tbody><tr><td colspan="2" style="text-align: center; color: #94a3b8; padding: 8px;">Sem atributos cadastrados</td></tr></tbody></table>`;
             }
-            content += `</tbody></table>`;
-        } else if (!qaData) {
-            content += `<div class="popup-subtitle-info"><i class="fa-solid fa-table"></i> Tabela de Atributos</div>`;
-            content += `<table class="popup-attribute-table"><tbody><tr><td colspan="2" style="text-align: center; color: #94a3b8; padding: 8px;">Sem atributos cadastrados</td></tr></tbody></table>`;
         }
 
         content += `</div>`;
