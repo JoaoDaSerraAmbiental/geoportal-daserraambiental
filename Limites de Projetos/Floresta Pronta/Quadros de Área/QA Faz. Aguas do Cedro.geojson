@@ -5,6 +5,6 @@
 { "type": "Feature", "properties": { "Tema": "Propriedade", "Área (ha)": 716.44, "%": 100.0 }, "geometry": null },
 { "type": "Feature", "properties": { "Tema": "Reserva Legal", "Área (ha)": 143.29, "%": 20.0 }, "geometry": null },
 { "type": "Feature", "properties": { "Tema": "Vegetação Nativa", "Área (ha)": 588.16, "%": 82.09 }, "geometry": null },
-{ "type": "Feature", "properties": { "Tema": "Excedente de Vegetação", "Área (ha)": 444.87, "%": 62.09 }, "geometry": null }
+{ "type": "Feature", "properties": { "Tema": "Vegetação Excedente", "Área (ha)": 444.87, "%": 62.09 }, "geometry": null }
 ]
 }
