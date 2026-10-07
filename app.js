@@ -42,7 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
     L.control.scale({ imperial: false, position: 'bottomright' }).addTo(map);
 
     // Custom Map Panes to strictly control Z-Index layer ordering:
-    // muniPane (375) < outrosPane (380) < propriedadePane (390) < projetosPane (410)
+    // muniPane (375) < outrosPane (380) < vegetacaoPane (385) < propriedadePane (390) < projetosPane (410)
     map.createPane('muniPane');
     map.getPane('muniPane').style.zIndex = 375;
     map.getPane('muniPane').style.pointerEvents = 'none';
@@ -50,6 +50,10 @@ document.addEventListener('DOMContentLoaded', () => {
     map.createPane('outrosPane');
     map.getPane('outrosPane').style.zIndex = 380;
     map.getPane('outrosPane').style.pointerEvents = 'auto';
+
+    map.createPane('vegetacaoPane');
+    map.getPane('vegetacaoPane').style.zIndex = 385;
+    map.getPane('vegetacaoPane').style.pointerEvents = 'none';
 
     map.createPane('propriedadePane');
     map.getPane('propriedadePane').style.zIndex = 390;
@@ -244,7 +248,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const PROJECT_DISPLAY_NAMES_NORM = {};
     for (const [k, v] of Object.entries(PROJECT_DISPLAY_NAMES)) {
         PROJECT_DISPLAY_NAMES_NORM[normalizeLookupKey(k)] = v;
-        const cleanK = k.replace(/^(restauracao|floresta_pronta|area_propriedade)__/, '');
+        const cleanK = k.replace(/^(restauracao|floresta_pronta|floresta_mata_nativa|area_propriedade)__/, '');
         PROJECT_DISPLAY_NAMES_NORM[normalizeLookupKey(cleanK)] = v;
     }
 
@@ -325,7 +329,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // 1. Busca direta na tabela exata
         if (PROJECT_DISPLAY_NAMES[key]) return PROJECT_DISPLAY_NAMES[key];
 
-        const clean = key.replace(/^(restauracao|floresta_pronta|area_propriedade)__/, '').trim();
+        const clean = key.replace(/^(restauracao|floresta_pronta|floresta_mata_nativa|area_propriedade)__/, '').trim();
         if (PROJECT_DISPLAY_NAMES[clean]) return PROJECT_DISPLAY_NAMES[clean];
 
         // 2. Busca pela chave normalizada (independe de acentuação, espaços e símbolos)
@@ -371,6 +375,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let cat = geoData.projetos[key].categoria;
         if (!cat) {
             if (key.startsWith('area_propriedade__')) cat = 'area_propriedade';
+            else if (key.startsWith('floresta_mata_nativa__')) cat = 'floresta_mata_nativa';
             else if (key.startsWith('floresta_pronta__')) cat = 'floresta_pronta';
             else cat = 'restauracao';
         }
@@ -379,9 +384,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Cor fixa por categoria
     const categoryColor = {
-        restauracao:      '#29ff1e',  // verde claro
-        floresta_pronta:  '#01a300',  // verde escuro
-        area_propriedade: '#dc2626'   // vermelho
+        restauracao:           '#29ff1e',  // verde claro
+        floresta_pronta:       '#01a300',  // verde escuro (limites da propriedade em floresta pronta)
+        floresta_mata_nativa:  '#15803d',  // verde mata nativa / florestal
+        area_propriedade:      '#dc2626'   // vermelho
     };
 
     // Controle dinâmico: alternar cores por Status do Projeto
@@ -412,37 +418,66 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function getFeatureStyle(feature, defaultColor, opacity = 0.45, category = '') {
-        const isPropriedade = category === 'area_propriedade';
+        const isPropriedade = (category === 'area_propriedade' || category === 'floresta_pronta');
         const c = isPropriedade ? defaultColor : getFeatureColor(feature, defaultColor);
+
+        if (isPropriedade) {
+            return {
+                color: c,
+                weight: category === 'area_propriedade' ? 1.2 : 2.2,
+                opacity: 0.95,
+                fillColor: 'transparent',
+                fillOpacity: 0
+            };
+        }
+        if (category === 'floresta_mata_nativa') {
+            return {
+                color: c,
+                weight: 1.0,
+                opacity: 0.9,
+                fillColor: c,
+                fillOpacity: opacity !== undefined ? opacity : 0.55
+            };
+        }
         return {
             color: c,
-            weight: isPropriedade ? 1.2 : 2.5,
+            weight: 2.5,
             opacity: 0.95,
-            fillColor: isPropriedade ? 'transparent' : c,
-            fillOpacity: isPropriedade ? 0 : opacity
+            fillColor: c,
+            fillOpacity: opacity
         };
     }
 
     sortedProjectKeys.forEach((key) => {
         const data = geoData.projetos[key];
         const cat  = projectCategory[key] || 'restauracao';
-        const color = categoryColor[cat];
+        const color = categoryColor[cat] || '#15803d';
 
         const projName = formatProjectName(key);
         const featureCount = data.features ? data.features.length : 0;
         const calculatedAreaHa = calculateGeoJsonArea(data);
 
-        // Build Leaflet GeoJSON layer
-        const geoLayer = L.geoJSON(data, {
-            pane: cat === 'area_propriedade' ? 'propriedadePane' : 'projetosPane',
-            style: (feature) => getFeatureStyle(feature, color, 0.45, cat),
-            onEachFeature: (feature, layer) => {
+        const isPropriedade = (cat === 'area_propriedade' || cat === 'floresta_pronta');
+        const isMataNativa = (cat === 'floresta_mata_nativa');
+
+        let paneName = 'projetosPane';
+        if (isPropriedade) paneName = 'propriedadePane';
+        else if (isMataNativa) paneName = 'vegetacaoPane';
+
+        const geoLayerOptions = {
+            pane: paneName,
+            interactive: !isMataNativa,
+            style: (feature) => getFeatureStyle(feature, color, isPropriedade ? 0 : (isMataNativa ? 0.55 : 0.45), cat)
+        };
+
+        if (!isMataNativa) {
+            geoLayerOptions.onEachFeature = (feature, layer) => {
                 // Interactive hover style
                 layer.on({
                     mouseover: (e) => {
                         const l = e.target;
-                        if (cat === 'area_propriedade') {
-                            l.setStyle({ weight: 2.4, color: '#b91c1c', fillOpacity: 0 });
+                        if (isPropriedade) {
+                            l.setStyle({ weight: 3.2, fillOpacity: 0 });
                         } else {
                             l.setStyle({ weight: 4, fillOpacity: 0.7 });
                             if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
@@ -459,8 +494,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // Attach Popup
                 layer.bindPopup(() => createPopupContent(feature.properties, projName, getFeatureColor(feature, color), data.quadro_area || (feature.properties ? feature.properties._quadro_area : null)));
-            }
-        });
+            };
+        }
+
+        // Build Leaflet GeoJSON layer
+        const geoLayer = L.geoJSON(data, geoLayerOptions);
 
         // Expand overall project bounds
         try {
@@ -486,7 +524,7 @@ document.addEventListener('DOMContentLoaded', () => {
             featureCount: featureCount,
             areaHa: calculatedAreaHa,
             visible: true,
-            opacity: cat === 'area_propriedade' ? 0 : 0.45
+            opacity: isPropriedade ? 0 : (isMataNativa ? 0.55 : 0.45)
         };
     });
 
@@ -675,12 +713,15 @@ document.addEventListener('DOMContentLoaded', () => {
     // (projectCategory já definido e preenchido na seção 2/3 acima)
 
     // Render Project Layer List Items by Category
-    const restauracaoContainer  = document.getElementById('restauracao-layer-list');
-    const florestaContainer     = document.getElementById('floresta-layer-list');
-    const propriedadeContainer  = document.getElementById('propriedade-layer-list');
-    restauracaoContainer.innerHTML  = '';
-    florestaContainer.innerHTML     = '';
-    propriedadeContainer.innerHTML  = '';
+    const restauracaoContainer   = document.getElementById('restauracao-layer-list');
+    const florestaContainer      = document.getElementById('floresta-layer-list');
+    const florestaMataContainer  = document.getElementById('floresta-mata-layer-list');
+    const propriedadeContainer   = document.getElementById('propriedade-layer-list');
+
+    if (restauracaoContainer) restauracaoContainer.innerHTML  = '';
+    if (florestaContainer) florestaContainer.innerHTML     = '';
+    if (florestaMataContainer) florestaMataContainer.innerHTML = '';
+    if (propriedadeContainer) propriedadeContainer.innerHTML  = '';
 
     function buildLayerItem(key, item) {
         const layerEl = document.createElement('div');
@@ -688,10 +729,14 @@ document.addEventListener('DOMContentLoaded', () => {
         layerEl.dataset.key = key;
         layerEl.dataset.name = item.name.toLowerCase();
 
-        const isPropriedade = (item.categoria === 'area_propriedade');
+        const isPropriedade = (item.categoria === 'area_propriedade' || item.categoria === 'floresta_pronta');
+        const isMataNativa  = (item.categoria === 'floresta_mata_nativa');
+
         const badgeStyle = isPropriedade
             ? `background-color: transparent; border: 2.5px solid ${item.color}; box-sizing: border-box;`
             : `background-color: ${item.color};`;
+
+        const defaultSliderVal = isPropriedade ? 95 : (isMataNativa ? 55 : 45);
 
         layerEl.innerHTML = `
             <div class="layer-main-row">
@@ -714,7 +759,7 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
             <div class="layer-extra-controls">
                 <span class="opacity-label">${isPropriedade ? 'Contorno:' : 'Opacidade:'}</span>
-                <input type="range" class="opacity-slider" data-key="${key}" min="0" max="100" value="${isPropriedade ? 95 : 45}">
+                <input type="range" class="opacity-slider" data-key="${key}" min="0" max="100" value="${defaultSliderVal}">
             </div>
         `;
         return layerEl;
@@ -722,35 +767,48 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const emptyMsg = '<div style="padding: 10px 12px; font-size: 0.78rem; color: var(--text-muted); font-style: italic;">Nenhuma camada adicionada ainda.</div>';
 
-    let restauracaoCount  = 0;
-    let florestaCount     = 0;
-    let propriedadeCount  = 0;
+    let restauracaoCount   = 0;
+    let florestaCount      = 0;
+    let florestaMataCount  = 0;
+    let propriedadeCount   = 0;
 
     sortedProjectKeys.forEach((key) => {
         const item = projectLayers[key];
         const cat  = projectCategory[key] || 'restauracao';
         const el   = buildLayerItem(key, item);
 
-        if (cat === 'floresta_pronta') {
-            florestaContainer.appendChild(el);
+        if (cat === 'floresta_mata_nativa') {
+            if (florestaMataContainer) florestaMataContainer.appendChild(el);
+            florestaMataCount++;
+        } else if (cat === 'floresta_pronta') {
+            if (florestaContainer) florestaContainer.appendChild(el);
             florestaCount++;
         } else if (cat === 'area_propriedade') {
-            propriedadeContainer.appendChild(el);
+            if (propriedadeContainer) propriedadeContainer.appendChild(el);
             propriedadeCount++;
         } else {
-            restauracaoContainer.appendChild(el);
+            if (restauracaoContainer) restauracaoContainer.appendChild(el);
             restauracaoCount++;
         }
     });
 
     // Atualizar badges de contagem
-    document.getElementById('restauracao-count').textContent  = restauracaoCount;
-    document.getElementById('floresta-count').textContent     = florestaCount;
-    document.getElementById('propriedade-count').textContent  = propriedadeCount;
+    const restBadge = document.getElementById('restauracao-count');
+    if (restBadge) restBadge.textContent = restauracaoCount;
+
+    const florBadge = document.getElementById('floresta-count');
+    if (florBadge) florBadge.textContent = florestaCount;
+
+    const mataBadge = document.getElementById('floresta-mata-count');
+    if (mataBadge) mataBadge.textContent = florestaMataCount;
+
+    const propBadge = document.getElementById('propriedade-count');
+    if (propBadge) propBadge.textContent = propriedadeCount;
 
     // Mensagem se categoria vazia
-    if (florestaCount    === 0) florestaContainer.innerHTML    = emptyMsg;
-    if (propriedadeCount === 0) propriedadeContainer.innerHTML = emptyMsg;
+    if (florestaCount     === 0 && florestaContainer)     florestaContainer.innerHTML     = emptyMsg;
+    if (florestaMataCount === 0 && florestaMataContainer) florestaMataContainer.innerHTML = emptyMsg;
+    if (propriedadeCount  === 0 && propriedadeContainer)  propriedadeContainer.innerHTML  = emptyMsg;
 
 
     // Render Outros Limites Layer List Items

@@ -22,6 +22,8 @@ def normalize_text(text):
 def get_category_key(folder_name):
     norm = normalize_text(folder_name)
     if "floresta" in norm:
+        if "mata" in norm or "nativa" in norm or "vegetac" in norm:
+            return "floresta_mata_nativa"
         return "floresta_pronta"
     elif "propriedad" in norm or "area" in norm:
         return "area_propriedade"

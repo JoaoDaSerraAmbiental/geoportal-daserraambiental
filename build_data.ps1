@@ -92,16 +92,20 @@ foreach ($catFolder in $categorias.Keys) {
 
     foreach ($f in $projFiles) {
         $rawKey = [System.IO.Path]::GetFileNameWithoutExtension($f.Name)
-        $key = "${catKey}__${rawKey}"
+        $thisCatKey = $catKey
+        if ($catKey -eq "floresta_pronta" -and ($f.FullName -match "mata|nativa|vegetac")) {
+            $thisCatKey = "floresta_mata_nativa"
+        }
+        $key = "${thisCatKey}__${rawKey}"
         $normRaw = $rawKey.ToLower().Trim()
         try {
             $content = (Get-FileContentShared $f.FullName).Trim()
 
-            if ($qaMap.ContainsKey($normRaw)) {
+            if ($thisCatKey -eq "floresta_pronta" -and $qaMap.ContainsKey($normRaw)) {
                 $qaStr = $qaMap[$normRaw]
-                $content = $content -replace '"type"\s*:\s*"FeatureCollection"', "`"type`":`"FeatureCollection`",`"categoria`":`"$catKey`",`"quadro_area`":$qaStr"
+                $content = $content -replace '"type"\s*:\s*"FeatureCollection"', "`"type`":`"FeatureCollection`",`"categoria`":`"$thisCatKey`",`"quadro_area`":$qaStr"
             } else {
-                $content = $content -replace '"type"\s*:\s*"FeatureCollection"', "`"type`":`"FeatureCollection`",`"categoria`":`"$catKey`""
+                $content = $content -replace '"type"\s*:\s*"FeatureCollection"', "`"type`":`"FeatureCollection`",`"categoria`":`"$thisCatKey`""
             }
 
             if (-not $firstProj) { [void]$sb.Append(",") }
