@@ -42,7 +42,7 @@ def build_dataset():
 
     # 1. Pre-scan all 'Quadros de Área' files in Limites de Projetos
     if os.path.exists(projetos_dir):
-        for root, dirs, files in os.walk(projetos_dir):
+        for root, dirs, files in os.walk(projetos_dir, followlinks=True):
             if 'quadro' in normalize_text(root):
                 for gfile in files:
                     if gfile.lower().endswith('.geojson'):
@@ -61,15 +61,14 @@ def build_dataset():
 
     # 2. Process Limites de Projetos (ignoring 'Quadros de Área' folder for spatial layers)
     if os.path.exists(projetos_dir):
-        for root, dirs, files in os.walk(projetos_dir):
+        for root, dirs, files in os.walk(projetos_dir, followlinks=True):
             if 'quadro' in normalize_text(root):
                 continue  # Skip QA folder from being added as spatial project layers
 
             geojsons = [f for f in files if f.lower().endswith('.geojson')]
             if geojsons:
                 rel_path = os.path.relpath(root, projetos_dir)
-                top_folder = rel_path.replace('\\', '/').split('/')[0] if rel_path != '.' else 'Restauração'
-                cat_key = get_category_key(top_folder)
+                cat_key = get_category_key(rel_path)
 
                 for gfile in sorted(geojsons):
                     raw_key = os.path.splitext(gfile)[0]

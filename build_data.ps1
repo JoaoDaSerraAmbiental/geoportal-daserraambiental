@@ -1,19 +1,29 @@
 # ==========================================================
 # Gerador de Pacote GeoJSON (build_data.ps1)
 # Da Serra Ambiental
-# ----------------------------------------------------------
-# Le as subpastas de "Limites de Projetos":
-#   - Restauracao/       -> categoria: restauracao
-#   - Floresta Pronta/   -> categoria: floresta_pronta
-# Cada arquivo .geojson vira uma entrada em window.GEOPORTAL_DATA
 # ==========================================================
 
 $baseDir   = $PSScriptRoot
 $outrosDir = Join-Path $baseDir "Outros Limites"
 $outPath   = Join-Path $baseDir "geojson_data.js"
+$pyScript  = Join-Path $baseDir "build_data.py"
 
-# Mapa de subpastas -> chave de categoria usada no app.js
-# A chave do hashtable deve bater exatamente com o nome da pasta no disco
+# 1. Tenta executar o script Python (build_data.py), que inclui processamento de Quadros de Área
+if (Test-Path $pyScript) {
+    if (Get-Command py -ErrorAction SilentlyContinue) {
+        Write-Host "Executando build_data.py via 'py'..."
+        & py $pyScript
+        if ($LASTEXITCODE -eq 0) { exit 0 }
+    }
+    if (Get-Command python -ErrorAction SilentlyContinue) {
+        Write-Host "Executando build_data.py via 'python'..."
+        & python $pyScript
+        if ($LASTEXITCODE -eq 0) { exit 0 }
+    }
+}
+
+Write-Host "Executando compilação nativa em PowerShell com busca recursiva..."
+
 $categorias = [ordered]@{
     "Restaura$(([char]0xE7))$(([char]0xE3))o" = "restauracao"
     "Floresta Pronta"                          = "floresta_pronta"
@@ -22,14 +32,12 @@ $categorias = [ordered]@{
 
 function Get-FileContentShared($path) {
     $fs = [System.IO.FileStream]::new($path, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
-    $sr = [System.IO.StreamReader]::new($fs, [System.Text.Encoding]::UTF8)
+    $sr = [System.StreamReader]::new($fs, [System.Text.Encoding]::UTF8)
     $text = $sr.ReadToEnd()
     $sr.Close()
     $fs.Close()
     return $text
 }
-
-Write-Host "Compilando camadas GeoJSON para geojson_data.js..."
 
 $sb = [System.Text.StringBuilder]::new()
 [void]$sb.Append("window.GEOPORTAL_DATA = {`"projetos`":{")
@@ -45,7 +53,9 @@ foreach ($catFolder in $categorias.Keys) {
         continue
     }
 
-    $projFiles = Get-ChildItem $catDir -Filter "*.geojson" | Sort-Object Name
+    $projFiles = Get-ChildItem $catDir -Recurse -Filter "*.geojson" | 
+        Where-Object { $_.FullName -notmatch "Quadros de ($(([char]0xC1))|a)rea|quadro" } | 
+        Sort-Object Name
 
     foreach ($f in $projFiles) {
         $rawKey = [System.IO.Path]::GetFileNameWithoutExtension($f.Name)
@@ -54,7 +64,6 @@ foreach ($catFolder in $categorias.Keys) {
             $content = (Get-FileContentShared $f.FullName).Trim()
 
             # Injeta o campo "categoria" dentro do FeatureCollection
-            # para que o app.js leia sem precisar de mapeamento manual
             $content = $content -replace '"type"\s*:\s*"FeatureCollection"', "`"type`":`"FeatureCollection`",`"categoria`":`"$catKey`""
 
             if (-not $firstProj) { [void]$sb.Append(",") }
