@@ -906,10 +906,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Accordion Sections Collapse / Expand
-    document.querySelectorAll('.accordion-header').forEach(header => {
+    document.querySelectorAll('.accordion-header, .sub-accordion-header').forEach(header => {
         header.addEventListener('click', (e) => {
             if (e.target.closest('.btn-cat-toggle') || e.target.closest('button')) return;
-            const section = header.closest('.accordion-section');
+            const section = header.closest('.accordion-section, .sub-accordion-section');
             if (section) section.classList.toggle('active');
         });
     });

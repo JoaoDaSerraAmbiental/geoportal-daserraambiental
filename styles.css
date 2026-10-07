@@ -624,6 +624,51 @@ body, html {
     display: block;
 }
 
+/* Sub-accordion inside main section */
+.sub-accordion-section {
+    background: #ffffff;
+    border-radius: var(--radius-sm);
+}
+
+.sub-accordion-header {
+    padding: 7px 10px;
+    background: #f8fafc;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    user-select: none;
+    transition: background var(--transition-fast);
+}
+
+.sub-accordion-header:hover {
+    background: #f1f5f9;
+}
+
+.sub-accordion-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.sub-accordion-content {
+    display: none;
+    padding-top: 6px;
+}
+
+.sub-accordion-section.active .sub-accordion-content {
+    display: block;
+}
+
+.sub-accordion-section.active .accordion-chevron {
+    transform: rotate(180deg);
+}
+
 /* Base Map & Outros Limites Selector (Floating Panel on Right Side) */
 .basemap-floating-right {
     position: absolute;
