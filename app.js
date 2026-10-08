@@ -1028,6 +1028,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let containerId = '';
         if (cat === 'restauracao') containerId = 'restauracao-layer-list';
         else if (cat === 'floresta_pronta') containerId = 'floresta-layer-list';
+        else if (cat === 'floresta_mata_nativa') containerId = 'floresta-mata-layer-list';
         else if (cat === 'area_propriedade') containerId = 'propriedade-layer-list';
 
         if (containerId) {
@@ -1061,7 +1062,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function updateAllCategoryButtons() {
-        ['restauracao', 'floresta_pronta', 'area_propriedade'].forEach(cat => updateCategoryButtonState(cat));
+        ['restauracao', 'floresta_pronta', 'floresta_mata_nativa', 'area_propriedade'].forEach(cat => updateCategoryButtonState(cat));
     }
 
     // Interceptar clique nos botões de alternar categoria na fase de captura (capture phase)
@@ -1639,8 +1640,8 @@ document.addEventListener('DOMContentLoaded', () => {
             item.visible = true;
             const chk = document.querySelector(`.layer-toggle[data-key="${key}"]`);
             if (chk) chk.checked = true;
-            updateCategoryHeaderBadges();
-            updateTotalAreaDisplays();
+            updateAllCategoryButtons();
+            updateFooterStats();
         }
 
         // Zoom suave para os limites do projeto
