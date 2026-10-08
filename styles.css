@@ -2040,4 +2040,234 @@ path.leaflet-interactive:focus-visible {
     color: #cbd5e1;
 }
 
+/* ==========================================================================
+   Floating Measurement Tool (Régua Interativa de Distâncias)
+   ========================================================================== */
+.measure-floating-panel {
+    position: absolute;
+    top: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    width: 380px;
+    max-width: min(380px, calc(100% - 30px));
+    background: rgba(255, 255, 255, 0.96);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: measureSlideDown 0.25s ease-out;
+}
+
+@keyframes measureSlideDown {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -12px);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, 0);
+    }
+}
+
+.measure-floating-panel.hidden {
+    display: none;
+}
+
+.measure-header {
+    background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+    color: #ffffff;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.measure-title {
+    font-size: 0.88rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    letter-spacing: -0.01em;
+}
+
+.measure-close-btn {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background var(--transition-fast);
+}
+
+.measure-close-btn:hover {
+    background: rgba(255, 255, 255, 0.35);
+}
+
+.measure-body {
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.measure-result-card {
+    background: #f0f9ff;
+    border: 1px solid #bae6fd;
+    border-radius: var(--radius-md);
+    padding: 12px 14px;
+    text-align: center;
+}
+
+.measure-result-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #0369a1;
+    margin-bottom: 2px;
+}
+
+.measure-result-val {
+    font-size: 1.65rem;
+    font-weight: 800;
+    color: #0284c7;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.2;
+}
+
+.measure-result-sub {
+    font-size: 0.75rem;
+    color: #64748b;
+    margin-top: 4px;
+    font-weight: 500;
+}
+
+.measure-hint {
+    font-size: 0.75rem;
+    color: #475569;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: #f8fafc;
+    border: 1px dashed #cbd5e1;
+    padding: 8px 10px;
+    border-radius: var(--radius-sm);
+    line-height: 1.35;
+}
+
+.measure-hint i {
+    color: #0284c7;
+    font-size: 0.85rem;
+    flex-shrink: 0;
+}
+
+.measure-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 2px;
+}
+
+.btn-measure-action {
+    flex: 1;
+    padding: 7px 10px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-color);
+    background: #ffffff;
+    color: var(--text-primary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    transition: all var(--transition-fast);
+}
+
+.btn-measure-action:hover {
+    background: #f1f5f9;
+    border-color: #94a3b8;
+}
+
+.btn-measure-action:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.btn-measure-action.primary {
+    background: #0284c7;
+    border-color: #0284c7;
+    color: #ffffff;
+}
+
+.btn-measure-action.primary:hover {
+    background: #0369a1;
+    border-color: #0369a1;
+}
+
+/* Map cursor when measure mode is active */
+.leaflet-container.measure-active,
+.leaflet-container.measure-active .leaflet-interactive {
+    cursor: crosshair !important;
+}
+
+/* Markers and segment badges */
+.measure-vertex-icon {
+    background: #ffffff;
+    border: 2.5px solid #0284c7;
+    border-radius: 50%;
+    box-shadow: 0 0 6px rgba(0, 0, 0, 0.4);
+}
+
+.measure-vertex-start {
+    border-color: #16a34a;
+}
+
+.measure-vertex-end {
+    border-color: #dc2626;
+}
+
+.measure-tooltip {
+    background: rgba(15, 23, 42, 0.88) !important;
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    border-radius: 6px !important;
+    color: #ffffff !important;
+    font-size: 0.76rem !important;
+    font-weight: 600 !important;
+    padding: 3px 7px !important;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25) !important;
+    white-space: nowrap;
+}
+
+.measure-tooltip::before {
+    border-top-color: rgba(15, 23, 42, 0.88) !important;
+}
+
+.measure-rubberband-tooltip {
+    background: rgba(2, 132, 199, 0.92) !important;
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(255, 255, 255, 0.3) !important;
+    border-radius: 6px !important;
+    color: #ffffff !important;
+    font-size: 0.74rem !important;
+    font-weight: 600 !important;
+    padding: 3px 8px !important;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3) !important;
+    white-space: nowrap;
+    pointer-events: none;
+}
+
+
 

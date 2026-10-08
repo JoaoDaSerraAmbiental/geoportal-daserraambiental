@@ -63,6 +63,10 @@ document.addEventListener('DOMContentLoaded', () => {
     map.getPane('projetosPane').style.zIndex = 410;
     map.getPane('projetosPane').style.pointerEvents = 'auto';
 
+    map.createPane('measurePane');
+    map.getPane('measurePane').style.zIndex = 600;
+    map.getPane('measurePane').style.pointerEvents = 'none';
+
     let activeBaseMapKey = 'google-satellite';
     let currentWaybackLayer = null;
     let isHistoricalActive = false;
@@ -491,6 +495,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Interactive hover style
                 layer.on({
                     mouseover: (e) => {
+                        if (window.MeasureTool && window.MeasureTool.isActive && !window.MeasureTool.isFinished) return;
                         const l = e.target;
                         if (isPropriedade) {
                             l.setStyle({ weight: 3.2, fillOpacity: 0 });
@@ -502,9 +507,16 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     },
                     mouseout: (e) => {
+                        if (window.MeasureTool && window.MeasureTool.isActive && !window.MeasureTool.isFinished) return;
                         const l = e.target;
                         const currentOpacity = (projectLayers[key] && projectLayers[key].opacity !== undefined) ? projectLayers[key].opacity : 0.45;
                         l.setStyle(getFeatureStyle(l.feature || feature, color, currentOpacity, cat));
+                    },
+                    click: (e) => {
+                        if (window.MeasureTool && window.MeasureTool.isActive && !window.MeasureTool.isFinished) {
+                            L.DomEvent.stopPropagation(e);
+                            window.MeasureTool.handleMapClick(e.latlng);
+                        }
                     }
                 });
 
@@ -590,6 +602,7 @@ document.addEventListener('DOMContentLoaded', () => {
             onEachFeature: (feature, layer) => {
                 layer.on({
                     mouseover: (e) => {
+                        if (window.MeasureTool && window.MeasureTool.isActive && !window.MeasureTool.isFinished) return;
                         if (isMuni) {
                             if (isMuniZoomAllowed()) {
                                 e.target.setStyle({ weight: 2.2, color: '#38bdf8', fillOpacity: 0.12 });
@@ -601,7 +614,14 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     },
                     mouseout: (e) => {
+                        if (window.MeasureTool && window.MeasureTool.isActive && !window.MeasureTool.isFinished) return;
                         geoLayer.resetStyle(e.target);
+                    },
+                    click: (e) => {
+                        if (window.MeasureTool && window.MeasureTool.isActive && !window.MeasureTool.isFinished) {
+                            L.DomEvent.stopPropagation(e);
+                            window.MeasureTool.handleMapClick(e.latlng);
+                        }
                     }
                 });
                 const props = feature.properties || {};
@@ -2302,6 +2322,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Event Listeners for Timeline
     if (btnToggleTimeline) {
         btnToggleTimeline.addEventListener('click', () => {
+            if (window.MeasureTool && window.MeasureTool.isActive) {
+                window.MeasureTool.stop();
+            }
             if (timelinePanel) {
                 const isHidden = timelinePanel.classList.toggle('hidden');
                 btnToggleTimeline.classList.toggle('active', !isHidden || isHistoricalActive);
@@ -2396,4 +2419,502 @@ document.addEventListener('DOMContentLoaded', () => {
             resetToDefaultSatellite(true);
         });
     }
+
+    // ==========================================================================
+    // Interactive Distance Measurement Ruler Tool (Ferramenta de Metrificação)
+    // ==========================================================================
+    const MeasureTool = {
+        isActive: false,
+        isFinished: false,
+        points: [],
+        totalDistance: 0,
+        mainPolyline: null,
+        rubberbandPolyline: null,
+        cursorMarker: null,
+        vertexMarkers: [],
+        segmentMarkers: [],
+        lastClickTime: 0,
+
+        init() {
+            // Ensure measurePane exists
+            if (!map.getPane('measurePane')) {
+                map.createPane('measurePane');
+                map.getPane('measurePane').style.zIndex = 600;
+                map.getPane('measurePane').style.pointerEvents = 'none';
+            }
+
+            const btnMeasure = document.getElementById('btn-measure');
+            const btnClose = document.getElementById('btn-measure-close');
+            const btnUndo = document.getElementById('btn-measure-undo');
+            const btnClear = document.getElementById('btn-measure-clear');
+            const btnFinish = document.getElementById('btn-measure-finish');
+            const panel = document.getElementById('measure-floating-panel');
+
+            // Prevent map clicks when interacting with floating panel
+            if (panel) {
+                L.DomEvent.disableClickPropagation(panel);
+                L.DomEvent.disableScrollPropagation(panel);
+                ['mousedown', 'mousemove', 'mouseup', 'dblclick', 'contextmenu', 'pointerdown'].forEach(evt => {
+                    panel.addEventListener(evt, (e) => e.stopPropagation());
+                });
+            }
+
+            if (btnMeasure) {
+                btnMeasure.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (this.isActive) {
+                        this.stop();
+                    } else {
+                        this.start();
+                    }
+                });
+            }
+
+            if (btnClose) {
+                btnClose.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.stop();
+                });
+            }
+
+            if (btnUndo) {
+                btnUndo.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.undo();
+                });
+            }
+
+            if (btnClear) {
+                btnClear.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.clear();
+                });
+            }
+
+            if (btnFinish) {
+                btnFinish.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.finish();
+                });
+            }
+
+            // Map level event listeners
+            map.on('click', (e) => {
+                if (this.isActive && !this.isFinished) {
+                    this.handleMapClick(e.latlng);
+                }
+            });
+
+            map.on('dblclick', (e) => {
+                if (this.isActive && !this.isFinished) {
+                    L.DomEvent.stopPropagation(e);
+                    if (this.points.length >= 2) {
+                        this.finish();
+                    }
+                }
+            });
+
+            map.on('mousemove', (e) => {
+                if (this.isActive && !this.isFinished) {
+                    this.handleMouseMove(e.latlng);
+                }
+            });
+
+            map.getContainer().addEventListener('mouseleave', () => {
+                if (this.isActive && !this.isFinished) {
+                    this.clearRubberband();
+                }
+            });
+
+            // Prevent popups when measuring
+            map.on('popupopen', (e) => {
+                if (this.isActive && !this.isFinished) {
+                    map.closePopup(e.popup);
+                }
+            });
+
+            // Keyboard navigation
+            document.addEventListener('keydown', (e) => {
+                if (!this.isActive) return;
+
+                if (e.key === 'Escape') {
+                    this.stop();
+                } else if (e.key === 'Enter') {
+                    if (this.points.length >= 2 && !this.isFinished) {
+                        this.finish();
+                    }
+                } else if (e.key === 'Backspace' || (e.key === 'z' && (e.ctrlKey || e.metaKey))) {
+                    if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+                        e.preventDefault();
+                        this.undo();
+                    }
+                }
+            });
+        },
+
+        start() {
+            this.isActive = true;
+            this.isFinished = false;
+            this.points = [];
+            this.totalDistance = 0;
+
+            map.doubleClickZoom.disable();
+            map.getContainer().classList.add('measure-active');
+
+            const panel = document.getElementById('measure-floating-panel');
+            const btn = document.getElementById('btn-measure');
+            if (panel) panel.classList.remove('hidden');
+            if (btn) btn.classList.add('active');
+
+            // Close timeline panel if open
+            const timelinePanel = document.getElementById('timeline-floating-panel');
+            const btnToggleTimeline = document.getElementById('btn-toggle-timeline');
+            if (timelinePanel && !timelinePanel.classList.contains('hidden')) {
+                timelinePanel.classList.add('hidden');
+                if (btnToggleTimeline && !isHistoricalActive) {
+                    btnToggleTimeline.classList.remove('active');
+                }
+            }
+
+            this.updateUI();
+        },
+
+        stop() {
+            this.isActive = false;
+            this.clear();
+
+            if (this.mainPolyline) {
+                map.removeLayer(this.mainPolyline);
+                this.mainPolyline = null;
+            }
+            this.clearRubberband();
+
+            map.doubleClickZoom.enable();
+            map.getContainer().classList.remove('measure-active');
+
+            const panel = document.getElementById('measure-floating-panel');
+            const btn = document.getElementById('btn-measure');
+            if (panel) panel.classList.add('hidden');
+            if (btn) btn.classList.remove('active');
+        },
+
+        clear() {
+            if (!this.isActive) return;
+            this.points = [];
+            this.totalDistance = 0;
+            this.isFinished = false;
+
+            this.vertexMarkers.forEach(m => map.removeLayer(m));
+            this.vertexMarkers = [];
+
+            this.segmentMarkers.forEach(m => map.removeLayer(m));
+            this.segmentMarkers = [];
+
+            if (this.mainPolyline) {
+                this.mainPolyline.setLatLngs([]);
+            }
+            this.clearRubberband();
+            this.updateUI();
+
+            map.doubleClickZoom.disable();
+            map.getContainer().classList.add('measure-active');
+        },
+
+        finish() {
+            if (!this.isActive || this.isFinished || this.points.length < 2) return;
+
+            // Remove accidental duplicate last point (from double-click)
+            if (this.points.length >= 2) {
+                const last = this.points[this.points.length - 1];
+                const prev = this.points[this.points.length - 2];
+                if (last.distanceTo(prev) < 0.5) {
+                    this.points.pop();
+                    const lastMarker = this.vertexMarkers.pop();
+                    if (lastMarker) map.removeLayer(lastMarker);
+                    const lastSeg = this.segmentMarkers.pop();
+                    if (lastSeg) map.removeLayer(lastSeg);
+                    this.updatePolyline();
+                    this.calculateTotal();
+                }
+            }
+
+            this.isFinished = true;
+            this.clearRubberband();
+            map.doubleClickZoom.enable();
+            map.getContainer().classList.remove('measure-active');
+
+            this.refreshMarkers();
+            this.updateUI();
+        },
+
+        undo() {
+            if (!this.isActive || this.points.length === 0) return;
+
+            if (this.isFinished) {
+                this.isFinished = false;
+                map.doubleClickZoom.disable();
+                map.getContainer().classList.add('measure-active');
+            }
+
+            this.points.pop();
+
+            const lastMarker = this.vertexMarkers.pop();
+            if (lastMarker) map.removeLayer(lastMarker);
+
+            const lastSeg = this.segmentMarkers.pop();
+            if (lastSeg) map.removeLayer(lastSeg);
+
+            this.updatePolyline();
+            this.calculateTotal();
+            this.clearRubberband();
+            this.refreshMarkers();
+            this.updateUI();
+        },
+
+        handleMapClick(latlng) {
+            if (!this.isActive || this.isFinished) return;
+            const now = Date.now();
+            if (now - this.lastClickTime < 80) return; // Deduplicate simultaneous events
+            this.lastClickTime = now;
+
+            this.addPoint(latlng);
+        },
+
+        addPoint(latlng) {
+            if (!this.isActive || this.isFinished) return;
+
+            // If user clicks on top of the last point, conclude measurement
+            if (this.points.length >= 2) {
+                const last = this.points[this.points.length - 1];
+                if (last.distanceTo(latlng) < 1.5) {
+                    this.finish();
+                    return;
+                }
+            }
+
+            this.points.push(latlng);
+
+            // Segment badge
+            if (this.points.length >= 2) {
+                const p1 = this.points[this.points.length - 2];
+                const p2 = this.points[this.points.length - 1];
+                const segDist = p1.distanceTo(p2);
+                const midPoint = L.latLng((p1.lat + p2.lat) / 2, (p1.lng + p2.lng) / 2);
+
+                const badge = L.marker(midPoint, {
+                    pane: 'measurePane',
+                    interactive: false,
+                    icon: L.divIcon({ className: 'measure-segment-dummy', iconSize: [0, 0] })
+                });
+                badge.bindTooltip(this.formatDistance(segDist), {
+                    permanent: true,
+                    direction: 'center',
+                    className: 'measure-tooltip',
+                    pane: 'measurePane',
+                    interactive: false
+                });
+                badge.addTo(map);
+                this.segmentMarkers.push(badge);
+            }
+
+            // Vertex marker
+            const markerType = (this.points.length === 1) ? 'start' : 'intermediate';
+            const marker = L.marker(latlng, {
+                pane: 'measurePane',
+                interactive: false,
+                icon: this.createVertexIcon(markerType)
+            }).addTo(map);
+            this.vertexMarkers.push(marker);
+
+            this.updatePolyline();
+            this.calculateTotal();
+            this.updateUI();
+        },
+
+        handleMouseMove(latlng) {
+            if (!this.isActive || this.isFinished) {
+                this.clearRubberband();
+                return;
+            }
+
+            if (this.points.length === 0) {
+                this.updateCursorMarker(latlng, 'Clique para iniciar a medição');
+                return;
+            }
+
+            const lastPoint = this.points[this.points.length - 1];
+            const segDist = lastPoint.distanceTo(latlng);
+            const candidateTotal = this.totalDistance + segDist;
+
+            if (!this.rubberbandPolyline) {
+                this.rubberbandPolyline = L.polyline([lastPoint, latlng], {
+                    pane: 'measurePane',
+                    color: '#0284c7',
+                    weight: 2.2,
+                    dashArray: '5, 5',
+                    opacity: 0.85,
+                    interactive: false
+                }).addTo(map);
+            } else {
+                this.rubberbandPolyline.setLatLngs([lastPoint, latlng]);
+                if (!map.hasLayer(this.rubberbandPolyline)) {
+                    this.rubberbandPolyline.addTo(map);
+                }
+            }
+
+            const tipText = (this.points.length === 1)
+                ? `+ ${this.formatDistance(segDist)}`
+                : `+ ${this.formatDistance(segDist)} (Total: ${this.formatDistance(candidateTotal)})`;
+
+            this.updateCursorMarker(latlng, tipText);
+        },
+
+        updateCursorMarker(latlng, text) {
+            if (!this.cursorMarker) {
+                this.cursorMarker = L.marker(latlng, {
+                    pane: 'measurePane',
+                    interactive: false,
+                    icon: L.divIcon({ className: 'measure-cursor-dummy', iconSize: [0, 0] })
+                });
+                this.cursorMarker.bindTooltip(text, {
+                    permanent: true,
+                    direction: 'right',
+                    offset: [14, 0],
+                    className: 'measure-rubberband-tooltip',
+                    pane: 'measurePane',
+                    interactive: false
+                });
+                this.cursorMarker.addTo(map);
+            } else {
+                this.cursorMarker.setLatLng(latlng);
+                this.cursorMarker.setTooltipContent(text);
+                if (!map.hasLayer(this.cursorMarker)) {
+                    this.cursorMarker.addTo(map);
+                }
+            }
+        },
+
+        clearRubberband() {
+            if (this.rubberbandPolyline) {
+                this.rubberbandPolyline.setLatLngs([]);
+                if (map.hasLayer(this.rubberbandPolyline)) {
+                    map.removeLayer(this.rubberbandPolyline);
+                }
+            }
+            if (this.cursorMarker) {
+                if (map.hasLayer(this.cursorMarker)) {
+                    map.removeLayer(this.cursorMarker);
+                }
+            }
+        },
+
+        updatePolyline() {
+            if (!this.mainPolyline) {
+                this.mainPolyline = L.polyline(this.points, {
+                    pane: 'measurePane',
+                    color: '#0284c7',
+                    weight: 3.5,
+                    opacity: 0.9,
+                    lineCap: 'round',
+                    lineJoin: 'round',
+                    interactive: false
+                }).addTo(map);
+            } else {
+                this.mainPolyline.setLatLngs(this.points);
+                if (!map.hasLayer(this.mainPolyline)) {
+                    this.mainPolyline.addTo(map);
+                }
+            }
+        },
+
+        calculateTotal() {
+            let total = 0;
+            for (let i = 1; i < this.points.length; i++) {
+                total += this.points[i - 1].distanceTo(this.points[i]);
+            }
+            this.totalDistance = total;
+            return total;
+        },
+
+        refreshMarkers() {
+            this.vertexMarkers.forEach((marker, idx) => {
+                let type = 'intermediate';
+                if (idx === 0) {
+                    type = 'start';
+                } else if (idx === this.vertexMarkers.length - 1 && this.isFinished) {
+                    type = 'end';
+                }
+                marker.setIcon(this.createVertexIcon(type));
+            });
+        },
+
+        createVertexIcon(type = 'intermediate') {
+            let extraClass = '';
+            let size = 12;
+            if (type === 'start') {
+                extraClass = 'measure-vertex-start';
+                size = 14;
+            } else if (type === 'end') {
+                extraClass = 'measure-vertex-end';
+                size = 14;
+            }
+            return L.divIcon({
+                className: `measure-vertex-icon ${extraClass}`.trim(),
+                iconSize: [size, size],
+                iconAnchor: [size / 2, size / 2]
+            });
+        },
+
+        formatDistance(meters) {
+            if (meters < 1000) {
+                return `${Math.round(meters)} m`;
+            }
+            const km = meters / 1000;
+            return `${km.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} km`;
+        },
+
+        updateUI() {
+            const totalEl = document.getElementById('measure-total-val');
+            const subEl = document.getElementById('measure-points-sub');
+            const hintEl = document.getElementById('measure-hint');
+            const btnUndo = document.getElementById('btn-measure-undo');
+            const btnClear = document.getElementById('btn-measure-clear');
+            const btnFinish = document.getElementById('btn-measure-finish');
+
+            const count = this.points.length;
+
+            if (totalEl) {
+                totalEl.textContent = this.formatDistance(this.totalDistance);
+            }
+
+            if (subEl) {
+                if (count === 0) {
+                    subEl.textContent = 'Nenhum ponto marcado';
+                } else if (this.isFinished) {
+                    subEl.textContent = `${count} ${count === 1 ? 'ponto' : 'pontos'} • Medição concluída`;
+                } else {
+                    subEl.textContent = `${count} ${count === 1 ? 'ponto marcado' : 'pontos marcados'}`;
+                }
+            }
+
+            if (hintEl) {
+                if (count === 0) {
+                    hintEl.innerHTML = '<i class="fa-solid fa-circle-info"></i> Clique no mapa para marcar o ponto inicial.';
+                } else if (this.isFinished) {
+                    hintEl.innerHTML = '<i class="fa-solid fa-circle-check" style="color: #16a34a;"></i> Medição concluída. Use Limpar para recomeçar ou Fechar no topo.';
+                } else if (count === 1) {
+                    hintEl.innerHTML = '<i class="fa-solid fa-circle-info"></i> Mova o cursor e clique no mapa para o próximo ponto.';
+                } else {
+                    hintEl.innerHTML = '<i class="fa-solid fa-circle-info"></i> Clique para continuar ou duplo-clique / Concluir para finalizar.';
+                }
+            }
+
+            if (btnUndo) btnUndo.disabled = (count === 0);
+            if (btnClear) btnClear.disabled = (count === 0);
+            if (btnFinish) btnFinish.disabled = (count < 2 || this.isFinished);
+        }
+    };
+
+    window.MeasureTool = MeasureTool;
+    MeasureTool.init();
 });

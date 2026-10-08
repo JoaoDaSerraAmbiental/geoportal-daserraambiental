@@ -19,7 +19,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
     
     <!-- Custom Styles -->
-    <link rel="stylesheet" href="styles.css?v=23">
+    <link rel="stylesheet" href="styles.css?v=24">
 </head>
 <body>
     <div id="app-container">
@@ -308,6 +308,9 @@
             
             <!-- Floating Top-Right Tool Buttons -->
             <div class="map-floating-tools">
+                <button class="floating-btn" id="btn-measure" title="Régua de Medição de Distâncias">
+                    <i class="fa-solid fa-ruler-combined"></i>
+                </button>
                 <button class="floating-btn" id="btn-toggle-timeline" title="Imagens Históricas de Satélite e Ortofotos (2007 - 2026)">
                     <i class="fa-solid fa-clock-rotate-left"></i>
                 </button>
@@ -418,6 +421,40 @@
                 </div>
             </div>
 
+            <!-- Floating Measurement Panel (Régua Interativa de Distâncias) -->
+            <div class="measure-floating-panel hidden" id="measure-floating-panel">
+                <div class="measure-header">
+                    <div class="measure-title">
+                        <i class="fa-solid fa-ruler-combined"></i>
+                        <span>Régua de Medição</span>
+                    </div>
+                    <button class="measure-close-btn" id="btn-measure-close" title="Fechar e Encerrar Medição">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+                <div class="measure-body">
+                    <div class="measure-result-card">
+                        <div class="measure-result-label">Distância Total</div>
+                        <div class="measure-result-val" id="measure-total-val">0 m</div>
+                        <div class="measure-result-sub" id="measure-points-sub">Nenhum ponto marcado</div>
+                    </div>
+                    <div class="measure-hint" id="measure-hint">
+                        <i class="fa-solid fa-circle-info"></i> Clique no mapa para marcar o ponto inicial.
+                    </div>
+                    <div class="measure-actions">
+                        <button class="btn-measure-action" id="btn-measure-undo" title="Desfazer o último ponto marcado" disabled>
+                            <i class="fa-solid fa-rotate-left"></i> Desfazer
+                        </button>
+                        <button class="btn-measure-action" id="btn-measure-clear" title="Limpar todo o traçado atual" disabled>
+                            <i class="fa-solid fa-trash-can"></i> Limpar
+                        </button>
+                        <button class="btn-measure-action primary" id="btn-measure-finish" title="Finalizar e fixar medição" disabled>
+                            <i class="fa-solid fa-check"></i> Concluir
+                        </button>
+                    </div>
+                </div>
+            </div>
+
         </main>
     </div>
 
@@ -428,12 +465,12 @@
     <script src="https://unpkg.com/@turf/turf@6.5.0/turf.min.js"></script>
 
     <!-- Embedded GeoJSON Data Package -->
-    <script src="geojson_data.js?v=1791464874"></script>
+    <script src="geojson_data.js?v=1791471381"></script>
 
     <!-- Municipal Basins Data Package -->
     <script src="municipios_bacias_data.js?v=18"></script>
 
     <!-- Custom Application Logic -->
-    <script src="app.js?v=24"></script>
+    <script src="app.js?v=25"></script>
 </body>
 </html>
