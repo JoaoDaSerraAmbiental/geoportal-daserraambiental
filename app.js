@@ -2457,6 +2457,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 ['mousedown', 'mousemove', 'mouseup', 'dblclick', 'contextmenu', 'pointerdown'].forEach(evt => {
                     panel.addEventListener(evt, (e) => e.stopPropagation());
                 });
+                panel.addEventListener('mouseenter', () => {
+                    if (this.isActive && !this.isFinished) {
+                        this.clearRubberband();
+                    }
+                });
             }
 
             if (btnMeasure) {
