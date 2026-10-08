@@ -2340,7 +2340,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (btnToggleTimeline) btnToggleTimeline.classList.add('active');
     }
 
-    function resetToDefaultSatellite() {
+    function resetToDefaultSatellite(updateSlider = true) {
         if (currentWaybackLayer && map.hasLayer(currentWaybackLayer)) {
             map.removeLayer(currentWaybackLayer);
         }
@@ -2363,10 +2363,62 @@ document.addEventListener('DOMContentLoaded', () => {
         if (timelineBadge) timelineBadge.textContent = '2026';
         if (timelineTitle) timelineTitle.textContent = 'Google Satélite (Atual)';
         if (timelineSubtitle) timelineSubtitle.textContent = 'Imagens de satélite mais recentes';
-        if (timelineRange) timelineRange.value = historicalSources.length;
+        if (updateSlider && timelineRange) timelineRange.value = historicalSources.length;
         if (timelineSelect) timelineSelect.value = historicalSources.length;
         if (btnToggleTimeline && (!timelinePanel || timelinePanel.classList.contains('hidden'))) {
             btnToggleTimeline.classList.remove('active');
+        }
+    }
+
+    // Evita interferência de eventos do mapa Leaflet sobre o painel flutuante da Linha do Tempo
+    if (timelinePanel) {
+        L.DomEvent.disableClickPropagation(timelinePanel);
+        L.DomEvent.disableScrollPropagation(timelinePanel);
+
+        // Previne que cliques, toques ou arrastos dentro do painel cheguem ao Leaflet
+        ['mousedown', 'pointerdown', 'touchstart', 'dblclick', 'contextmenu'].forEach(evt => {
+            timelinePanel.addEventListener(evt, (e) => e.stopPropagation());
+        });
+    }
+
+    // Suporte a arraste suave (drag) no controle deslizante da linha do tempo
+    let timelineDebounceTimer = null;
+
+    function applyTimelineStep(idx, isImmediate = false) {
+        // Feedback visual instantâneo nos textos, badge e dropdown
+        if (idx >= historicalSources.length) {
+            if (timelineBadge) timelineBadge.textContent = '2026';
+            if (timelineTitle) timelineTitle.textContent = 'Google Satélite (Atual)';
+            if (timelineSubtitle) timelineSubtitle.textContent = 'Imagens de satélite mais recentes';
+            if (timelineSelect) timelineSelect.value = historicalSources.length;
+        } else {
+            const item = historicalSources[idx];
+            if (item) {
+                if (timelineBadge) timelineBadge.textContent = item.year;
+                if (timelineTitle) timelineTitle.textContent = item.title;
+                if (timelineSubtitle) timelineSubtitle.textContent = item.subtitle;
+                if (timelineSelect) timelineSelect.value = idx;
+            }
+        }
+
+        if (timelineDebounceTimer) {
+            clearTimeout(timelineDebounceTimer);
+            timelineDebounceTimer = null;
+        }
+
+        const executeLayerChange = () => {
+            if (idx >= historicalSources.length) {
+                resetToDefaultSatellite(false);
+            } else {
+                const item = historicalSources[idx];
+                if (item) setHistoricalLayer(item);
+            }
+        };
+
+        if (isImmediate) {
+            executeLayerChange();
+        } else {
+            timelineDebounceTimer = setTimeout(executeLayerChange, 70);
         }
     }
 
@@ -2390,39 +2442,81 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (timelineRange) {
+        // Intercepta todos os eventos de ponteiro/mouse para que o Leaflet não cancele o arraste nativo
+        ['mousedown', 'mousemove', 'mouseup', 'pointerdown', 'pointermove', 'pointerup', 'touchstart', 'touchmove', 'touchend'].forEach(evt => {
+            timelineRange.addEventListener(evt, (e) => {
+                e.stopPropagation();
+            });
+        });
+
+        // Desabilita temporariamente o arrasto do mapa enquanto o usuário arrasta o slider
+        const disableMapDrag = () => {
+            if (map && map.dragging && map.dragging.enabled()) {
+                map.dragging.disable();
+            }
+        };
+
+        const restoreMapDrag = () => {
+            if (map && map.dragging && !map.dragging.enabled()) {
+                map.dragging.enable();
+            }
+        };
+
+        timelineRange.addEventListener('mousedown', disableMapDrag);
+        timelineRange.addEventListener('pointerdown', disableMapDrag);
+        timelineRange.addEventListener('touchstart', disableMapDrag, { passive: true });
+
+        window.addEventListener('mouseup', restoreMapDrag);
+        window.addEventListener('pointerup', restoreMapDrag);
+        window.addEventListener('touchend', restoreMapDrag);
+
+        // Evento input: dispara continuamente durante o arrasto do botão deslizante
         timelineRange.addEventListener('input', (e) => {
             const idx = parseInt(e.target.value, 10);
-            if (idx >= historicalSources.length) {
-                resetToDefaultSatellite();
-                if (timelineSelect) timelineSelect.value = historicalSources.length;
-            } else {
-                const item = historicalSources[idx];
-                if (item) {
-                    setHistoricalLayer(item);
-                    if (timelineSelect) timelineSelect.value = idx;
-                }
-            }
+            applyTimelineStep(idx, false);
+        });
+
+        // Evento change: dispara ao soltar o botão deslizante
+        timelineRange.addEventListener('change', (e) => {
+            const idx = parseInt(e.target.value, 10);
+            applyTimelineStep(idx, true);
         });
     }
 
     if (timelineSelect) {
         timelineSelect.addEventListener('change', (e) => {
             const idx = parseInt(e.target.value, 10);
-            if (idx >= historicalSources.length) {
-                resetToDefaultSatellite();
-            } else {
-                const item = historicalSources[idx];
-                if (item) setHistoricalLayer(item);
-            }
             if (timelineRange) timelineRange.value = idx;
+            applyTimelineStep(idx, true);
         });
     }
 
+    // Clique interativo nas marcações de ano abaixo da régua
+    document.querySelectorAll('.timeline-marks span').forEach(span => {
+        span.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const txt = span.textContent.trim();
+            const yearMap = {
+                '2007': 0,
+                '2010': 1,
+                '2014': 3,
+                '2017': 6,
+                '2020': 9,
+                '2023': 12,
+                '2026': 15,
+                'Atual': 16
+            };
+            if (yearMap[txt] !== undefined) {
+                const targetIdx = yearMap[txt];
+                if (timelineRange) timelineRange.value = targetIdx;
+                applyTimelineStep(targetIdx, true);
+            }
+        });
+    });
+
     if (btnResetTimeline) {
         btnResetTimeline.addEventListener('click', () => {
-            resetToDefaultSatellite();
-            if (timelineRange) timelineRange.value = historicalSources.length;
-            if (timelineSelect) timelineSelect.value = historicalSources.length;
+            resetToDefaultSatellite(true);
         });
     }
 });
