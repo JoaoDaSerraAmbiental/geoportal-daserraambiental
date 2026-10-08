@@ -2754,7 +2754,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!this.rubberbandPolyline) {
                 this.rubberbandPolyline = L.polyline([lastPoint, latlng], {
                     pane: 'measurePane',
-                    color: '#0284c7',
+                    color: '#16a34a',
                     weight: 2.2,
                     dashArray: '5, 5',
                     opacity: 0.85,
@@ -2817,7 +2817,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!this.mainPolyline) {
                 this.mainPolyline = L.polyline(this.points, {
                     pane: 'measurePane',
-                    color: '#0284c7',
+                    color: '#16a34a',
                     weight: 3.5,
                     opacity: 0.9,
                     lineCap: 'round',

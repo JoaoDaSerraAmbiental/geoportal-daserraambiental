@@ -2079,9 +2079,9 @@ path.leaflet-interactive:focus-visible {
 }
 
 .measure-header {
-    background: rgba(2, 132, 199, 0.08);
-    border-bottom: 1px solid rgba(2, 132, 199, 0.12);
-    color: #0369a1;
+    background: rgba(27, 77, 62, 0.08);
+    border-bottom: 1px solid rgba(27, 77, 62, 0.12);
+    color: var(--primary-color);
     padding: 5px 10px;
     display: flex;
     align-items: center;
@@ -2094,12 +2094,13 @@ path.leaflet-interactive:focus-visible {
     display: flex;
     align-items: center;
     gap: 6px;
-    color: #0284c7;
+    color: var(--primary-color);
     letter-spacing: -0.01em;
 }
 
 .measure-title i {
     font-size: 0.76rem;
+    color: var(--accent-color);
 }
 
 .measure-close-btn {
@@ -2131,7 +2132,7 @@ path.leaflet-interactive:focus-visible {
 
 .measure-result-card {
     background: rgba(255, 255, 255, 0.45);
-    border: 1px solid rgba(2, 132, 199, 0.18);
+    border: 1px solid rgba(39, 174, 96, 0.22);
     border-radius: 7px;
     padding: 5px 8px;
     text-align: center;
@@ -2142,14 +2143,14 @@ path.leaflet-interactive:focus-visible {
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    color: #0369a1;
+    color: var(--primary-color);
     margin-bottom: 1px;
 }
 
 .measure-result-val {
     font-size: 1.25rem;
     font-weight: 800;
-    color: #0284c7;
+    color: var(--primary-color);
     font-variant-numeric: tabular-nums;
     line-height: 1.15;
 }
@@ -2175,7 +2176,7 @@ path.leaflet-interactive:focus-visible {
 }
 
 .measure-hint i {
-    color: #0284c7;
+    color: var(--accent-color);
     font-size: 0.72rem;
     flex-shrink: 0;
 }
@@ -2205,8 +2206,8 @@ path.leaflet-interactive:focus-visible {
 
 .btn-measure-action:hover {
     background: rgba(255, 255, 255, 0.95);
-    border-color: #0284c7;
-    color: #0284c7;
+    border-color: var(--accent-color);
+    color: var(--primary-color);
 }
 
 .btn-measure-action:disabled {
@@ -2216,14 +2217,14 @@ path.leaflet-interactive:focus-visible {
 }
 
 .btn-measure-action.primary {
-    background: rgba(2, 132, 199, 0.9);
-    border-color: #0284c7;
+    background: var(--primary-color);
+    border-color: var(--primary-color);
     color: #ffffff;
 }
 
 .btn-measure-action.primary:hover {
-    background: #0284c7;
-    border-color: #0369a1;
+    background: var(--primary-hover);
+    border-color: var(--primary-hover);
 }
 
 /* Map cursor when measure mode is active */
@@ -2235,7 +2236,7 @@ path.leaflet-interactive:focus-visible {
 /* Markers and segment badges */
 .measure-vertex-icon {
     background: #ffffff;
-    border: 2.5px solid #0284c7;
+    border: 2.5px solid var(--accent-color);
     border-radius: 50%;
     box-shadow: 0 0 6px rgba(0, 0, 0, 0.4);
 }
@@ -2266,7 +2267,7 @@ path.leaflet-interactive:focus-visible {
 }
 
 .measure-rubberband-tooltip {
-    background: rgba(2, 132, 199, 0.92) !important;
+    background: rgba(27, 77, 62, 0.92) !important;
     backdrop-filter: blur(4px);
     border: 1px solid rgba(255, 255, 255, 0.3) !important;
     border-radius: 6px !important;
