@@ -135,6 +135,20 @@ document.addEventListener('DOMContentLoaded', () => {
         "floresta_pronta__REDS 3": "REDS 3",
         "floresta_pronta__REDS 4": "REDS 4",
         "floresta_pronta__Sitio Vista Alegre": "Sítio Vista Alegre",
+        "floresta_mata_nativa__Faz. Aguas do Cedro": "Faz. Águas do Cedro",
+        "floresta_mata_nativa__Faz. Bela Vista": "Faz. Bela Vista",
+        "floresta_mata_nativa__Faz. Guaiuvira": "Faz. Guaiuvira",
+        "floresta_mata_nativa__Faz. Laranjal": "Faz. Laranjal",
+        "floresta_mata_nativa__Faz. Novo Horizonte": "Faz. Novo Horizonte",
+        "floresta_mata_nativa__Faz. Rio Grande": "Faz. Rio Grande",
+        "floresta_mata_nativa__Faz. Sao Joao das Montanhas": "Faz. São João das Montanhas",
+        "floresta_mata_nativa__Faz. Sao Pedro": "Faz. São Pedro",
+        "floresta_mata_nativa__Montanhas do Japi": "Montanhas do Japi",
+        "floresta_mata_nativa__Recanto do Saua": "Recanto do Sauá",
+        "floresta_mata_nativa__Sitio Alvorada": "Sítio Alvorada",
+        "floresta_mata_nativa__Sitio Ernane": "Sítio Ernane",
+        "floresta_mata_nativa__Sitio Marilia": "Sítio Marília",
+        "floresta_mata_nativa__Sitio Sao Benedito": "Sítio São Benedito",
 
         // Restauração
         "restauracao__Acacio_ind_2015": "Acácio - Ind. (2015)",
@@ -301,7 +315,9 @@ document.addEventListener('DOMContentLoaded', () => {
             [/\bMemoria\b/gi, 'Memória'],
             [/\bViacao\b/gi, 'Viação'],
             [/\bJoa\b/gi, 'Joanópolis'],
-            [/\bPta\b/gi, 'Paulista']
+            [/\bPta\b/gi, 'Paulista'],
+            [/\bSaua\b/gi, 'Sauá'],
+            [/\bMarilia\b/gi, 'Marília']
         ];
 
         for (const [rgx, rep] of wordReplacements) {
@@ -1468,7 +1484,17 @@ document.addEventListener('DOMContentLoaded', () => {
         'tatui': 'Tatuí',
         'campinas': 'Campinas',
         'nazaré paulista': 'Nazaré Paulista',
-        'nazare paulista': 'Nazaré Paulista'
+        'nazare paulista': 'Nazaré Paulista',
+        'pompeia': 'Pompéia',
+        'pompéia': 'Pompéia',
+        'mogi das cruzes': 'Mogi das Cruzes',
+        'jundiaí': 'Jundiaí',
+        'jundiai': 'Jundiaí',
+        'monteiro lobato': 'Monteiro Lobato',
+        'são lourenço da serra': 'São Lourenço da Serra',
+        'sao lourenco da serra': 'São Lourenço da Serra',
+        'santa isabel': 'Santa Isabel',
+        'guararema': 'Guararema'
     };
 
     function normalizeMuniName(str) {
@@ -1506,11 +1532,49 @@ document.addEventListener('DOMContentLoaded', () => {
             if (window.turf && geoData.outros && geoData.outros['municipios_SP']) {
                 const muniCollection = geoData.outros['municipios_SP'];
                 const firstFeat = features[0];
-                const point = turf.centroid(firstFeat);
-                for (const muniFeat of muniCollection.features) {
-                    if (turf.booleanPointInPolygon(point, muniFeat)) {
-                        const m = muniFeat.properties && muniFeat.properties.NM_MUN;
-                        if (m) return normalizeMuniName(m);
+
+                // Ponto de teste: preferir pointOnFeature para garantir que esteja no polígono
+                let point = null;
+                try {
+                    point = turf.pointOnFeature(firstFeat);
+                } catch (e) {
+                    point = turf.centroid(firstFeat);
+                }
+
+                if (point && muniCollection.features) {
+                    for (const muniFeat of muniCollection.features) {
+                        if (turf.booleanPointInPolygon(point, muniFeat)) {
+                            const m = muniFeat.properties && muniFeat.properties.NM_MUN;
+                            if (m) return normalizeMuniName(m);
+                        }
+                    }
+                }
+
+                // Fallback secundário usando centroid
+                const centroidPoint = turf.centroid(firstFeat);
+                if (centroidPoint && muniCollection.features) {
+                    for (const muniFeat of muniCollection.features) {
+                        if (turf.booleanPointInPolygon(centroidPoint, muniFeat)) {
+                            const m = muniFeat.properties && muniFeat.properties.NM_MUN;
+                            if (m) return normalizeMuniName(m);
+                        }
+                    }
+                }
+
+                // Fallback terciário: primeiro vértice da geometria
+                if (firstFeat.geometry && firstFeat.geometry.coordinates) {
+                    let c = firstFeat.geometry.coordinates;
+                    while (Array.isArray(c) && Array.isArray(c[0])) {
+                        c = c[0];
+                    }
+                    if (Array.isArray(c) && c.length >= 2 && typeof c[0] === 'number') {
+                        const pt = turf.point([c[0], c[1]]);
+                        for (const muniFeat of muniCollection.features) {
+                            if (turf.booleanPointInPolygon(pt, muniFeat)) {
+                                const m = muniFeat.properties && muniFeat.properties.NM_MUN;
+                                if (m) return normalizeMuniName(m);
+                            }
+                        }
                     }
                 }
             }
@@ -1544,7 +1608,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         Object.keys(projectLayers).forEach(key => {
             const item = projectLayers[key];
-            if (!item || item.categoria === 'area_propriedade') return; // Restauração e Floresta Pronta
+            // Na aba de municípios, exibir apenas projetos reais (Restauração e Floresta Pronta - Matas Nativas).
+            // Limites de propriedade (tanto area_propriedade quanto os limites floresta_pronta) são estritamente excluídos.
+            if (!item || item.categoria === 'area_propriedade' || item.categoria === 'floresta_pronta') return;
 
             const muni = extractProjectMunicipality(item);
             if (!muni) return;
@@ -1574,7 +1640,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Status da feature
             let status = 'outro';
-            let statusDesc = 'Em atividade';
+            let statusDesc = item.categoria === 'floresta_mata_nativa' ? 'Floresta Pronta' : 'Em atividade';
             if (item.data && item.data.features && item.data.features.length > 0) {
                 const s = getFeatureStatus(item.data.features[0]);
                 if (s.includes('finaliz') || s.includes('conclu')) {
@@ -1736,7 +1802,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
                 <div class="muni-card-projects">
                     ${data.projects.map(p => {
-                        const catTag = p.categoria === 'floresta_pronta'
+                        const catTag = (p.categoria === 'floresta_pronta' || p.categoria === 'floresta_mata_nativa')
                             ? `<span class="muni-proj-tag tag-floresta">Floresta Pronta</span>`
                             : `<span class="muni-proj-tag tag-restauracao">Restauração</span>`;
                         const areaBadge = p.areaHa ? `<span class="muni-proj-area">${p.areaHa} ha</span>` : '';
