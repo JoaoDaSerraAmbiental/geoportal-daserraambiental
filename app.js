@@ -570,19 +570,22 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (key === 'regioes_hidrograficas_ana') {
             layerName = 'Regiões Hidrográficas (ANA)';
             color = '#0891b2';
-            subtitle = 'Regiões Hidrográficas Nacionais';
+            subtitle = 'Macro-bacias (SP)';
         }
 
         const isMuni = (key === 'municipios_SP');
+        const isUgrhi = (key === 'limites_ughris');
+        const isAna = (key === 'regioes_hidrograficas_ana');
 
         const geoLayer = L.geoJSON(data, {
             pane: isMuni ? 'muniPane' : 'outrosPane',
             style: {
                 color: color,
-                weight: isMuni ? 1 : (key === 'limites_ughris' ? 1.8 : 1),
-                opacity: isMuni ? 0.75 : 0.8,
+                weight: isMuni ? 1 : (isUgrhi ? 1.8 : 2.2),
+                dashArray: isAna ? '6, 6' : null,
+                opacity: isMuni ? 0.75 : 0.85,
                 fillColor: color,
-                fillOpacity: isMuni ? 0.005 : 0.08
+                fillOpacity: isMuni ? 0.005 : 0
             },
             onEachFeature: (feature, layer) => {
                 layer.on({
@@ -591,8 +594,10 @@ document.addEventListener('DOMContentLoaded', () => {
                             if (isMuniZoomAllowed()) {
                                 e.target.setStyle({ weight: 2.2, color: '#38bdf8', fillOpacity: 0.12 });
                             }
-                        } else {
-                            e.target.setStyle({ weight: 3, color: '#0f172a', fillOpacity: 0.25 });
+                        } else if (isUgrhi) {
+                            e.target.setStyle({ weight: 2.8, color: '#0369a1', fillOpacity: 0.04 });
+                        } else if (isAna) {
+                            e.target.setStyle({ weight: 3.2, color: '#0e7490', fillOpacity: 0.04 });
                         }
                     },
                     mouseout: (e) => {
@@ -600,15 +605,25 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 });
                 const props = feature.properties || {};
-                if (key === 'limites_ughris' && props.Nome) {
+                if (isUgrhi && props.Nome) {
+                    layer.bindTooltip(`UGRHI ${props.Codigo || ''}: ${props.Nome}`, {
+                        sticky: true,
+                        direction: 'top',
+                        className: 'muni-custom-tooltip'
+                    });
                     layer.bindPopup(`<strong>UGRHI ${props.Codigo || ''}: ${props.Nome}</strong>`);
-                } else if (key === 'regioes_hidrograficas_ana' && props.rhi_nm) {
+                } else if (isAna && props.rhi_nm) {
+                    layer.bindTooltip(`RH ${props.rhi_nm} (${props.rhi_sg || ''})`, {
+                        sticky: true,
+                        direction: 'top',
+                        className: 'muni-custom-tooltip'
+                    });
                     layer.bindPopup(`
                         <div class="popup-container">
-                            <div class="popup-title">Região Hidrográfica</div>
+                            <div class="popup-title">Região Hidrográfica (ANA)</div>
                             <div class="popup-row"><span class="popup-label">Nome:</span> <span class="popup-value">${props.rhi_nm}</span></div>
                             <div class="popup-row"><span class="popup-label">Sigla:</span> <span class="popup-value">${props.rhi_sg || '-'}</span></div>
-                            <div class="popup-row"><span class="popup-label">Área:</span> <span class="popup-value">${props.rhi_ar_km2 ? Number(props.rhi_ar_km2).toLocaleString('pt-BR', {maximumFractionDigits:0}) + ' km²' : '-'}</span></div>
+                            <div class="popup-row"><span class="popup-label">Âmbito:</span> <span class="popup-value">Estado de São Paulo</span></div>
                         </div>
                     `);
                 } else if (isMuni && props.NM_MUN) {
@@ -1371,7 +1386,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (l.feature && l.feature.properties && l.feature.properties.rhi_nm === rhiName) {
                             const bounds = l.getBounds();
                             if (bounds.isValid()) {
-                                map.fitBounds(bounds, { padding: [40, 40] });
+                                map.fitBounds(bounds, { padding: [40, 40], maxZoom: 10 });
                                 l.openPopup();
                             }
                         }
@@ -1401,7 +1416,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (l.feature && l.feature.properties && l.feature.properties.Nome === ugrhiName) {
                             const bounds = l.getBounds();
                             if (bounds.isValid()) {
-                                map.fitBounds(bounds, { padding: [40, 40] });
+                                map.fitBounds(bounds, { padding: [40, 40], maxZoom: 12 });
                                 l.openPopup();
                             }
                         }

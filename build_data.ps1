@@ -15,7 +15,8 @@ if (Test-Path $pyScript) {
         (Get-Command py -ErrorAction SilentlyContinue),
         (Get-Command python -ErrorAction SilentlyContinue),
         (Get-ChildItem "$env:LOCALAPPDATA\Python\*\python.exe" -ErrorAction SilentlyContinue | Select-Object -First 1),
-        (Get-ChildItem "$env:LOCALAPPDATA\Programs\Python\*\python.exe" -ErrorAction SilentlyContinue | Select-Object -First 1)
+        (Get-ChildItem "$env:LOCALAPPDATA\Programs\Python\*\python.exe" -ErrorAction SilentlyContinue | Select-Object -First 1),
+        (Get-ChildItem "C:\Program Files\QGIS*\apps\Python*\python.exe" -ErrorAction SilentlyContinue | Select-Object -First 1)
     ) | Where-Object { $_ }
 
     foreach ($pyCmd in $pyExecs) {
