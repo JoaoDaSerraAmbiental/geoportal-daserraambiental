@@ -936,23 +936,6 @@ body, html {
     cursor: pointer;
 }
 
-/* Municipality Selector Dropdown */
-.muni-search-box {
-    margin-top: 8px;
-    position: relative;
-}
-
-.muni-select {
-    width: 100%;
-    padding: 8px 10px;
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-sm);
-    font-size: 0.82rem;
-    background: white;
-    color: var(--text-primary);
-    outline: none;
-}
-
 /* Sidebar Footer / Stats Bar */
 .sidebar-footer {
     padding: 12px 16px;
