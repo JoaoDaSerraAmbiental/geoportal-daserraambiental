@@ -986,6 +986,15 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    // Base Map Floating Panel Minimize / Expand
+    const basemapFloatingHeader = document.getElementById('basemap-floating-header');
+    const basemapFloatingPanel = document.getElementById('basemap-floating-right');
+    if (basemapFloatingHeader && basemapFloatingPanel) {
+        basemapFloatingHeader.addEventListener('click', () => {
+            basemapFloatingPanel.classList.toggle('minimized');
+        });
+    }
+
     // Accordion Sections Collapse / Expand
     document.querySelectorAll('.accordion-header, .sub-accordion-header').forEach(header => {
         header.addEventListener('click', (e) => {
@@ -2482,6 +2491,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             }
 
+            const btnMin = document.getElementById('btn-measure-min');
+            const measureHeader = document.getElementById('measure-header');
+            if (btnMin && panel) {
+                btnMin.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    panel.classList.toggle('minimized');
+                });
+            }
+            if (measureHeader && panel) {
+                measureHeader.addEventListener('click', (e) => {
+                    if (e.target.closest('#btn-measure-close')) return;
+                    panel.classList.toggle('minimized');
+                });
+            }
+
             if (btnUndo) {
                 btnUndo.addEventListener('click', (e) => {
                     e.stopPropagation();
@@ -2568,7 +2592,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const panel = document.getElementById('measure-floating-panel');
             const btn = document.getElementById('btn-measure');
-            if (panel) panel.classList.remove('hidden');
+            if (panel) {
+                panel.classList.remove('hidden');
+                panel.classList.remove('minimized');
+            }
             if (btn) btn.classList.add('active');
 
             // Close timeline panel if open
@@ -2599,7 +2626,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const panel = document.getElementById('measure-floating-panel');
             const btn = document.getElementById('btn-measure');
-            if (panel) panel.classList.add('hidden');
+            if (panel) {
+                panel.classList.add('hidden');
+                panel.classList.remove('minimized');
+            }
             if (btn) btn.classList.remove('active');
         },
 
@@ -2890,6 +2920,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (totalEl) {
                 totalEl.textContent = this.formatDistance(this.totalDistance);
+            }
+
+            const miniBadge = document.getElementById('measure-mini-badge');
+            if (miniBadge) {
+                miniBadge.textContent = this.formatDistance(this.totalDistance);
             }
 
             if (subEl) {

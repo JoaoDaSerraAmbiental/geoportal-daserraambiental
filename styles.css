@@ -691,6 +691,27 @@ body, html {
     overflow-x: hidden;
     scrollbar-width: thin;
     scrollbar-color: #cbd5e1 #f8fafc;
+    transition: width var(--transition-fast), padding var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.basemap-floating-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    user-select: none;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border-color);
+    transition: all var(--transition-fast);
+}
+
+.basemap-floating-header:hover .basemap-floating-title {
+    color: var(--primary-hover);
+}
+
+.basemap-floating-header:hover .basemap-minimize-btn {
+    background: var(--accent-light);
+    color: var(--primary-color);
 }
 
 .basemap-floating-title {
@@ -700,10 +721,61 @@ body, html {
     display: flex;
     align-items: center;
     gap: 6px;
-    padding-bottom: 6px;
-    border-bottom: 1px solid var(--border-color);
     text-transform: uppercase;
     letter-spacing: 0.04em;
+    margin: 0;
+    padding: 0;
+    border-bottom: none;
+}
+
+.basemap-minimize-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    width: 22px;
+    height: 22px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.74rem;
+    transition: all var(--transition-fast);
+}
+
+.basemap-chevron {
+    transition: transform var(--transition-fast);
+    transform: rotate(180deg); /* Points UP when panel is open */
+}
+
+.basemap-floating-body {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* Minimized State for Basemap Panel */
+.basemap-floating-right.minimized {
+    padding: 8px 12px;
+    gap: 0;
+    width: 200px;
+    max-height: none;
+    overflow: hidden;
+    box-shadow: var(--shadow-md);
+    background: rgba(255, 255, 255, 0.94);
+}
+
+.basemap-floating-right.minimized .basemap-floating-header {
+    padding-bottom: 0;
+    border-bottom: none;
+}
+
+.basemap-floating-right.minimized .basemap-chevron {
+    transform: rotate(0deg); /* Points DOWN when panel is collapsed */
+}
+
+.basemap-floating-right.minimized .basemap-floating-body {
+    display: none;
 }
 
 .basemap-floating-list {
@@ -2086,6 +2158,8 @@ path.leaflet-interactive:focus-visible {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    cursor: pointer;
+    user-select: none;
 }
 
 .measure-title {
@@ -2101,6 +2175,47 @@ path.leaflet-interactive:focus-visible {
 .measure-title i {
     font-size: 0.76rem;
     color: var(--accent-color);
+}
+
+.measure-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.measure-min-btn {
+    background: rgba(0, 0, 0, 0.05);
+    border: none;
+    color: #64748b;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.65rem;
+    transition: all var(--transition-fast);
+}
+
+.measure-min-btn:hover {
+    background: rgba(27, 77, 62, 0.15);
+    color: var(--primary-color);
+}
+
+.measure-chevron {
+    transition: transform var(--transition-fast);
+}
+
+.measure-mini-badge {
+    display: none;
+    background: var(--primary-color);
+    color: white;
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 10px;
+    margin-left: 2px;
 }
 
 .measure-close-btn {
@@ -2121,6 +2236,23 @@ path.leaflet-interactive:focus-visible {
 .measure-close-btn:hover {
     background: rgba(239, 68, 68, 0.15);
     color: #dc2626;
+}
+
+/* Minimized State for Measure Panel */
+.measure-floating-panel.minimized .measure-body {
+    display: none;
+}
+
+.measure-floating-panel.minimized .measure-chevron {
+    transform: rotate(180deg);
+}
+
+.measure-floating-panel.minimized .measure-mini-badge {
+    display: inline-block;
+}
+
+.measure-floating-panel.minimized {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .measure-body {
