@@ -796,7 +796,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="color-badge" style="${badgeStyle}"></div>
                     <div>
                         <div class="layer-name" title="${item.name}">${item.name}</div>
-                        <div class="layer-subtitle">${item.featureCount} ${item.featureCount === 1 ? 'polígono' : 'polígonos'} ${item.areaHa ? '• ' + item.areaHa + ' ha' : ''}</div>
+                        ${item.areaHa ? `<div class="layer-subtitle">${item.areaHa} ha</div>` : ''}
                     </div>
                 </div>
                 <div class="layer-actions">
