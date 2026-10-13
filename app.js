@@ -42,14 +42,22 @@ document.addEventListener('DOMContentLoaded', () => {
     L.control.scale({ imperial: false, position: 'bottomright' }).addTo(map);
 
     // Custom Map Panes to strictly control Z-Index layer ordering:
-    // muniPane (375) < outrosPane (380) < vegetacaoPane (385) < propriedadePane (390) < projetosPane (410)
+    // outrosPane (370) < muniPane (375) < vegetacaoPane (385) < propriedadePane (390) < projetosPane (410)
+    map.createPane('outrosPane');
+    map.getPane('outrosPane').style.zIndex = 370;
+    map.getPane('outrosPane').style.pointerEvents = 'auto';
+
+    // Dedicated Canvas Renderer for Outros Limites macro vector layers (UGRHIs & Regiões Hidrográficas ANA)
+    // Canvas hardware acceleration eliminates SVG DOM reflow lag and drag slippage, keeping boundaries 100% in sync with the terrain
+    const outrosCanvasRenderer = L.canvas({
+        pane: 'outrosPane',
+        padding: 0.5,
+        tolerance: 8
+    });
+
     map.createPane('muniPane');
     map.getPane('muniPane').style.zIndex = 375;
     map.getPane('muniPane').style.pointerEvents = 'none';
-
-    map.createPane('outrosPane');
-    map.getPane('outrosPane').style.zIndex = 380;
-    map.getPane('outrosPane').style.pointerEvents = 'auto';
 
     map.createPane('vegetacaoPane');
     map.getPane('vegetacaoPane').style.zIndex = 385;
@@ -591,11 +599,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const geoLayer = L.geoJSON(data, {
             pane: isMuni ? 'muniPane' : 'outrosPane',
+            renderer: (isUgrhi || isAna) ? outrosCanvasRenderer : undefined,
             style: {
                 color: color,
                 weight: isMuni ? 1 : (isUgrhi ? 1.8 : 2.2),
                 dashArray: isAna ? '6, 6' : null,
                 opacity: isMuni ? 0.75 : 0.85,
+                fill: isMuni,
                 fillColor: color,
                 fillOpacity: isMuni ? 0.005 : 0
             },
@@ -608,9 +618,9 @@ document.addEventListener('DOMContentLoaded', () => {
                                 e.target.setStyle({ weight: 2.2, color: '#38bdf8', fillOpacity: 0.12 });
                             }
                         } else if (isUgrhi) {
-                            e.target.setStyle({ weight: 2.8, color: '#0369a1', fillOpacity: 0.04 });
+                            e.target.setStyle({ weight: 2.6, color: '#0369a1' });
                         } else if (isAna) {
-                            e.target.setStyle({ weight: 3.2, color: '#0e7490', fillOpacity: 0.04 });
+                            e.target.setStyle({ weight: 3.0, color: '#0e7490' });
                         }
                     },
                     mouseout: (e) => {
@@ -627,15 +637,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 const props = feature.properties || {};
                 if (isUgrhi && props.Nome) {
                     layer.bindTooltip(`UGRHI ${props.Codigo || ''}: ${props.Nome}`, {
-                        sticky: true,
-                        direction: 'top',
+                        sticky: false,
+                        direction: 'auto',
                         className: 'muni-custom-tooltip'
                     });
                     layer.bindPopup(`<strong>UGRHI ${props.Codigo || ''}: ${props.Nome}</strong>`);
                 } else if (isAna && props.rhi_nm) {
                     layer.bindTooltip(`RH ${props.rhi_nm} (${props.rhi_sg || ''})`, {
-                        sticky: true,
-                        direction: 'top',
+                        sticky: false,
+                        direction: 'auto',
                         className: 'muni-custom-tooltip'
                     });
                     layer.bindPopup(`
@@ -730,6 +740,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     updateMuniPointerEvents();
+
+    // Disable pointer-events on outrosPane during active panning/dragging so dragging never stutters from hover calculations
+    map.on('movestart dragstart', () => {
+        const pane = map.getPane('outrosPane');
+        if (pane) pane.style.pointerEvents = 'none';
+    });
+    map.on('moveend dragend', () => {
+        const pane = map.getPane('outrosPane');
+        if (pane) pane.style.pointerEvents = 'auto';
+    });
 
     // Close municipality tooltips/popups and reset highlight when zooming outside allowed scale
     map.on('zoomend', () => {

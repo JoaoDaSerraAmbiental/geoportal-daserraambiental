@@ -1116,6 +1116,7 @@ body, html {
 .leaflet-container:focus-visible,
 .leaflet-pane,
 .leaflet-pane svg,
+.leaflet-pane canvas,
 .leaflet-pane path,
 .leaflet-interactive,
 .leaflet-interactive:focus,
