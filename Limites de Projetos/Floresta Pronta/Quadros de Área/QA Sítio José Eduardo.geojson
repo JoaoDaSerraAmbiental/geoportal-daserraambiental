@@ -1,7 +1,42 @@
 {
-"type": "FeatureCollection",
-"name": "QA Sítio José Eduardo",
-"features": [
-
-]
+  "type": "FeatureCollection",
+  "name": "QA Sítio José Eduardo",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "Tema": "Limites da Propriedade",
+        "Área (ha)": 61.4,
+        "%": 100.0
+      },
+      "geometry": null
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "Tema": "Reserva Legal",
+        "Área (ha)": 12.28,
+        "%": 20.0
+      },
+      "geometry": null
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "Tema": "Vegetação Nativa",
+        "Área (ha)": 59.0,
+        "%": 96.09
+      },
+      "geometry": null
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "Tema": "Vegetação Excedente",
+        "Área (ha)": 46.72,
+        "%": 76.09
+      },
+      "geometry": null
+    }
+  ]
 }
