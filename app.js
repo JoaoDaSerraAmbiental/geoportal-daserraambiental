@@ -2435,13 +2435,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const MeasureTool = {
         isActive: false,
         isFinished: false,
+        mode: 'distance', // 'distance' | 'area'
         points: [],
         totalDistance: 0,
+        totalAreaSqM: 0,
         mainPolyline: null,
+        mainPolygon: null,
         rubberbandPolyline: null,
+        rubberbandPolygon: null,
         cursorMarker: null,
         vertexMarkers: [],
         segmentMarkers: [],
+        areaCenterMarker: null,
         lastClickTime: 0,
 
         init() {
@@ -2453,6 +2458,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const btnMeasure = document.getElementById('btn-measure');
+            const btnMeasureArea = document.getElementById('btn-measure-area');
+            const tabDistance = document.getElementById('tab-measure-distance');
+            const tabArea = document.getElementById('tab-measure-area');
             const btnClose = document.getElementById('btn-measure-close');
             const btnUndo = document.getElementById('btn-measure-undo');
             const btnClear = document.getElementById('btn-measure-clear');
@@ -2473,14 +2481,41 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             }
 
+            // Botão flutuante: Distância
             if (btnMeasure) {
                 btnMeasure.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    if (this.isActive) {
+                    if (this.isActive && this.mode === 'distance') {
                         this.stop();
                     } else {
-                        this.start();
+                        this.start('distance');
                     }
+                });
+            }
+
+            // Botão flutuante: Área
+            if (btnMeasureArea) {
+                btnMeasureArea.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (this.isActive && this.mode === 'area') {
+                        this.stop();
+                    } else {
+                        this.start('area');
+                    }
+                });
+            }
+
+            // Abas de alternância de modo dentro do HUD
+            if (tabDistance) {
+                tabDistance.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.setMode('distance');
+                });
+            }
+            if (tabArea) {
+                tabArea.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.setMode('area');
                 });
             }
 
@@ -2501,7 +2536,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             if (measureHeader && panel) {
                 measureHeader.addEventListener('click', (e) => {
-                    if (e.target.closest('#btn-measure-close')) return;
+                    if (e.target.closest('#btn-measure-close') || e.target.closest('#btn-measure-min')) return;
                     panel.classList.toggle('minimized');
                 });
             }
@@ -2537,7 +2572,8 @@ document.addEventListener('DOMContentLoaded', () => {
             map.on('dblclick', (e) => {
                 if (this.isActive && !this.isFinished) {
                     L.DomEvent.stopPropagation(e);
-                    if (this.points.length >= 2) {
+                    const minPoints = (this.mode === 'area') ? 3 : 2;
+                    if (this.points.length >= minPoints) {
                         this.finish();
                     }
                 }
@@ -2569,7 +2605,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (e.key === 'Escape') {
                     this.stop();
                 } else if (e.key === 'Enter') {
-                    if (this.points.length >= 2 && !this.isFinished) {
+                    const minPoints = (this.mode === 'area') ? 3 : 2;
+                    if (this.points.length >= minPoints && !this.isFinished) {
                         this.finish();
                     }
                 } else if (e.key === 'Backspace' || (e.key === 'z' && (e.ctrlKey || e.metaKey))) {
@@ -2581,22 +2618,22 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         },
 
-        start() {
+        start(mode = 'distance') {
             this.isActive = true;
+            this.mode = mode;
             this.isFinished = false;
             this.points = [];
             this.totalDistance = 0;
+            this.totalAreaSqM = 0;
 
             map.doubleClickZoom.disable();
             map.getContainer().classList.add('measure-active');
 
             const panel = document.getElementById('measure-floating-panel');
-            const btn = document.getElementById('btn-measure');
             if (panel) {
                 panel.classList.remove('hidden');
                 panel.classList.remove('minimized');
             }
-            if (btn) btn.classList.add('active');
 
             // Close timeline panel if open
             const timelinePanel = document.getElementById('timeline-floating-panel');
@@ -2608,7 +2645,43 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
+            this.updateModeUI();
             this.updateUI();
+        },
+
+        setMode(newMode) {
+            if (this.mode === newMode && this.isActive) return;
+            this.mode = newMode;
+            this.clear();
+            this.updateModeUI();
+            this.updateUI();
+        },
+
+        updateModeUI() {
+            const btnMeasure = document.getElementById('btn-measure');
+            const btnMeasureArea = document.getElementById('btn-measure-area');
+            const tabDistance = document.getElementById('tab-measure-distance');
+            const tabArea = document.getElementById('tab-measure-area');
+            const iconEl = document.getElementById('measure-header-icon');
+            const titleEl = document.getElementById('measure-header-text');
+            const labelEl = document.getElementById('measure-result-label');
+
+            if (btnMeasure) btnMeasure.classList.toggle('active', this.isActive && this.mode === 'distance');
+            if (btnMeasureArea) btnMeasureArea.classList.toggle('active', this.isActive && this.mode === 'area');
+            if (tabDistance) tabDistance.classList.toggle('active', this.mode === 'distance');
+            if (tabArea) tabArea.classList.toggle('active', this.mode === 'area');
+
+            if (iconEl) {
+                iconEl.className = (this.mode === 'area')
+                    ? 'fa-solid fa-draw-polygon'
+                    : 'fa-solid fa-ruler-combined';
+            }
+            if (titleEl) {
+                titleEl.textContent = (this.mode === 'area') ? 'Área' : 'Régua';
+            }
+            if (labelEl) {
+                labelEl.textContent = (this.mode === 'area') ? 'Área do Polígono' : 'Distância Total';
+            }
         },
 
         stop() {
@@ -2619,24 +2692,34 @@ document.addEventListener('DOMContentLoaded', () => {
                 map.removeLayer(this.mainPolyline);
                 this.mainPolyline = null;
             }
+            if (this.mainPolygon) {
+                map.removeLayer(this.mainPolygon);
+                this.mainPolygon = null;
+            }
+            if (this.areaCenterMarker) {
+                map.removeLayer(this.areaCenterMarker);
+                this.areaCenterMarker = null;
+            }
             this.clearRubberband();
 
             map.doubleClickZoom.enable();
             map.getContainer().classList.remove('measure-active');
 
             const panel = document.getElementById('measure-floating-panel');
-            const btn = document.getElementById('btn-measure');
+            const btnMeasure = document.getElementById('btn-measure');
+            const btnMeasureArea = document.getElementById('btn-measure-area');
             if (panel) {
                 panel.classList.add('hidden');
                 panel.classList.remove('minimized');
             }
-            if (btn) btn.classList.remove('active');
+            if (btnMeasure) btnMeasure.classList.remove('active');
+            if (btnMeasureArea) btnMeasureArea.classList.remove('active');
         },
 
         clear() {
-            if (!this.isActive) return;
             this.points = [];
             this.totalDistance = 0;
+            this.totalAreaSqM = 0;
             this.isFinished = false;
 
             this.vertexMarkers.forEach(m => map.removeLayer(m));
@@ -2646,30 +2729,53 @@ document.addEventListener('DOMContentLoaded', () => {
             this.segmentMarkers = [];
 
             if (this.mainPolyline) {
-                this.mainPolyline.setLatLngs([]);
+                map.removeLayer(this.mainPolyline);
+                this.mainPolyline = null;
             }
+            if (this.mainPolygon) {
+                map.removeLayer(this.mainPolygon);
+                this.mainPolygon = null;
+            }
+            if (this.areaCenterMarker) {
+                map.removeLayer(this.areaCenterMarker);
+                this.areaCenterMarker = null;
+            }
+
             this.clearRubberband();
             this.updateUI();
 
-            map.doubleClickZoom.disable();
-            map.getContainer().classList.add('measure-active');
+            if (this.isActive) {
+                map.doubleClickZoom.disable();
+                map.getContainer().classList.add('measure-active');
+            }
         },
 
         finish() {
-            if (!this.isActive || this.isFinished || this.points.length < 2) return;
+            if (!this.isActive || this.isFinished) return;
+            const minPoints = (this.mode === 'area') ? 3 : 2;
+            if (this.points.length < minPoints) return;
 
-            // Remove accidental duplicate last point (from double-click)
-            if (this.points.length >= 2) {
+            // Deduplicate accidental consecutive double click points
+            if (this.points.length > minPoints) {
                 const last = this.points[this.points.length - 1];
                 const prev = this.points[this.points.length - 2];
-                if (last.distanceTo(prev) < 0.5) {
+                if (last.distanceTo(prev) < 0.6) {
                     this.points.pop();
                     const lastMarker = this.vertexMarkers.pop();
                     if (lastMarker) map.removeLayer(lastMarker);
                     const lastSeg = this.segmentMarkers.pop();
                     if (lastSeg) map.removeLayer(lastSeg);
-                    this.updatePolyline();
-                    this.calculateTotal();
+                }
+            }
+
+            // In area mode, if user clicked near start to close it, discard duplicate end
+            if (this.mode === 'area' && this.points.length > 3) {
+                const last = this.points[this.points.length - 1];
+                const first = this.points[0];
+                if (last.distanceTo(first) < 1.0) {
+                    this.points.pop();
+                    const lastMarker = this.vertexMarkers.pop();
+                    if (lastMarker) map.removeLayer(lastMarker);
                 }
             }
 
@@ -2678,8 +2784,79 @@ document.addEventListener('DOMContentLoaded', () => {
             map.doubleClickZoom.enable();
             map.getContainer().classList.remove('measure-active');
 
+            this.updateShape();
+            this.calculateTotal();
+
+            // In area mode, add closing edge segment and center badge
+            if (this.mode === 'area' && this.points.length >= 3) {
+                // Add closing segment badge
+                const pFirst = this.points[0];
+                const pLast = this.points[this.points.length - 1];
+                const closingDist = pLast.distanceTo(pFirst);
+                const midPoint = L.latLng((pFirst.lat + pLast.lat) / 2, (pFirst.lng + pLast.lng) / 2);
+
+                const closingBadge = L.marker(midPoint, {
+                    pane: 'measurePane',
+                    interactive: false,
+                    icon: L.divIcon({ className: 'measure-segment-dummy', iconSize: [0, 0] })
+                });
+                closingBadge.bindTooltip(this.formatDistance(closingDist), {
+                    permanent: true,
+                    direction: 'center',
+                    className: 'measure-tooltip',
+                    pane: 'measurePane',
+                    interactive: false
+                });
+                closingBadge.addTo(map);
+                this.segmentMarkers.push(closingBadge);
+
+                // Add center badge
+                this.addAreaCenterBadge();
+            }
+
             this.refreshMarkers();
             this.updateUI();
+        },
+
+        addAreaCenterBadge() {
+            if (this.areaCenterMarker) {
+                map.removeLayer(this.areaCenterMarker);
+                this.areaCenterMarker = null;
+            }
+
+            let center = null;
+            try {
+                if (window.turf && this.points.length >= 3) {
+                    const coords = this.points.map(p => [p.lng, p.lat]);
+                    coords.push([this.points[0].lng, this.points[0].lat]);
+                    const poly = turf.polygon([coords]);
+                    const centroid = turf.centroid(poly);
+                    center = L.latLng(centroid.geometry.coordinates[1], centroid.geometry.coordinates[0]);
+                }
+            } catch (e) {
+                console.warn('Centroid calculation fallback:', e);
+            }
+
+            if (!center && this.mainPolygon) {
+                center = this.mainPolygon.getBounds().getCenter();
+            }
+
+            if (center) {
+                const sqM = this.totalAreaSqM;
+                const badgeIcon = L.divIcon({
+                    className: 'measure-area-center-badge-container',
+                    html: `<div class="measure-area-center-badge">
+                        <div class="area-badge-ha"><i class="fa-solid fa-draw-polygon"></i> ${this.formatArea(sqM)}</div>
+                        <div class="area-badge-m2">${Math.round(sqM).toLocaleString('pt-BR')} m²</div>
+                    </div>`,
+                    iconSize: [0, 0]
+                });
+                this.areaCenterMarker = L.marker(center, {
+                    pane: 'measurePane',
+                    interactive: false,
+                    icon: badgeIcon
+                }).addTo(map);
+            }
         },
 
         undo() {
@@ -2689,6 +2866,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 this.isFinished = false;
                 map.doubleClickZoom.disable();
                 map.getContainer().classList.add('measure-active');
+                if (this.areaCenterMarker) {
+                    map.removeLayer(this.areaCenterMarker);
+                    this.areaCenterMarker = null;
+                }
             }
 
             this.points.pop();
@@ -2699,7 +2880,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const lastSeg = this.segmentMarkers.pop();
             if (lastSeg) map.removeLayer(lastSeg);
 
-            this.updatePolyline();
+            this.updateShape();
             this.calculateTotal();
             this.clearRubberband();
             this.refreshMarkers();
@@ -2712,14 +2893,18 @@ document.addEventListener('DOMContentLoaded', () => {
             if (now - this.lastClickTime < 80) return; // Deduplicate simultaneous events
             this.lastClickTime = now;
 
-            this.addPoint(latlng);
-        },
+            // In area mode, clicking on or near start vertex closes the polygon
+            if (this.mode === 'area' && this.points.length >= 3) {
+                const first = this.points[0];
+                const pixDist = map.latLngToContainerPoint(latlng).distanceTo(map.latLngToContainerPoint(first));
+                if (pixDist < 20 || latlng.distanceTo(first) < 10) {
+                    this.finish();
+                    return;
+                }
+            }
 
-        addPoint(latlng) {
-            if (!this.isActive || this.isFinished) return;
-
-            // If user clicks on top of the last point, conclude measurement
-            if (this.points.length >= 2) {
+            // In distance mode, clicking on last vertex finishes
+            if (this.mode === 'distance' && this.points.length >= 2) {
                 const last = this.points[this.points.length - 1];
                 if (last.distanceTo(latlng) < 1.5) {
                     this.finish();
@@ -2727,9 +2912,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
+            this.addPoint(latlng);
+        },
+
+        addPoint(latlng) {
+            if (!this.isActive || this.isFinished) return;
+
             this.points.push(latlng);
 
-            // Segment badge
+            // Add segment badge between previous point and new point
             if (this.points.length >= 2) {
                 const p1 = this.points[this.points.length - 2];
                 const p2 = this.points[this.points.length - 1];
@@ -2761,7 +2952,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }).addTo(map);
             this.vertexMarkers.push(marker);
 
-            this.updatePolyline();
+            this.updateShape();
             this.calculateTotal();
             this.updateUI();
         },
@@ -2772,36 +2963,110 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            if (this.points.length === 0) {
-                this.updateCursorMarker(latlng, 'Clique para iniciar a medição');
-                return;
-            }
+            if (this.mode === 'distance') {
+                if (this.points.length === 0) {
+                    this.updateCursorMarker(latlng, 'Clique para iniciar a medição');
+                    return;
+                }
 
-            const lastPoint = this.points[this.points.length - 1];
-            const segDist = lastPoint.distanceTo(latlng);
-            const candidateTotal = this.totalDistance + segDist;
+                const lastPoint = this.points[this.points.length - 1];
+                const segDist = lastPoint.distanceTo(latlng);
+                const candidateTotal = this.totalDistance + segDist;
 
-            if (!this.rubberbandPolyline) {
-                this.rubberbandPolyline = L.polyline([lastPoint, latlng], {
-                    pane: 'measurePane',
-                    color: '#16a34a',
-                    weight: 2.2,
-                    dashArray: '5, 5',
-                    opacity: 0.85,
-                    interactive: false
-                }).addTo(map);
+                if (!this.rubberbandPolyline) {
+                    this.rubberbandPolyline = L.polyline([lastPoint, latlng], {
+                        pane: 'measurePane',
+                        color: '#16a34a',
+                        weight: 2.2,
+                        dashArray: '5, 5',
+                        opacity: 0.85,
+                        interactive: false
+                    }).addTo(map);
+                } else {
+                    this.rubberbandPolyline.setLatLngs([lastPoint, latlng]);
+                    if (!map.hasLayer(this.rubberbandPolyline)) {
+                        this.rubberbandPolyline.addTo(map);
+                    }
+                }
+
+                const tipText = (this.points.length === 1)
+                    ? `+ ${this.formatDistance(segDist)}`
+                    : `+ ${this.formatDistance(segDist)} (Total: ${this.formatDistance(candidateTotal)})`;
+
+                this.updateCursorMarker(latlng, tipText);
             } else {
-                this.rubberbandPolyline.setLatLngs([lastPoint, latlng]);
-                if (!map.hasLayer(this.rubberbandPolyline)) {
-                    this.rubberbandPolyline.addTo(map);
+                // Mode: Area
+                if (this.points.length === 0) {
+                    this.updateCursorMarker(latlng, 'Clique para marcar o 1º vértice');
+                    return;
+                }
+
+                if (this.points.length === 1) {
+                    const p0 = this.points[0];
+                    const segDist = p0.distanceTo(latlng);
+
+                    if (!this.rubberbandPolyline) {
+                        this.rubberbandPolyline = L.polyline([p0, latlng], {
+                            pane: 'measurePane',
+                            color: '#16a34a',
+                            weight: 2.2,
+                            dashArray: '5, 5',
+                            opacity: 0.85,
+                            interactive: false
+                        }).addTo(map);
+                    } else {
+                        this.rubberbandPolyline.setLatLngs([p0, latlng]);
+                        if (!map.hasLayer(this.rubberbandPolyline)) {
+                            this.rubberbandPolyline.addTo(map);
+                        }
+                    }
+                    this.updateCursorMarker(latlng, `+ ${this.formatDistance(segDist)}`);
+                    return;
+                }
+
+                // If points.length >= 2, preview dynamic polygon with cursor
+                const candPoints = [...this.points, latlng];
+                if (this.rubberbandPolyline && map.hasLayer(this.rubberbandPolyline)) {
+                    map.removeLayer(this.rubberbandPolyline);
+                }
+
+                if (!this.rubberbandPolygon) {
+                    this.rubberbandPolygon = L.polygon(candPoints, {
+                        pane: 'measurePane',
+                        color: '#16a34a',
+                        weight: 2.2,
+                        dashArray: '5, 5',
+                        fillColor: '#22c55e',
+                        fillOpacity: 0.16,
+                        interactive: false
+                    }).addTo(map);
+                } else {
+                    this.rubberbandPolygon.setLatLngs(candPoints);
+                    if (!map.hasLayer(this.rubberbandPolygon)) {
+                        this.rubberbandPolygon.addTo(map);
+                    }
+                }
+
+                // Calculate candidate area
+                let candArea = 0;
+                try {
+                    if (window.turf && candPoints.length >= 3) {
+                        const coords = candPoints.map(p => [p.lng, p.lat]);
+                        coords.push([candPoints[0].lng, candPoints[0].lat]);
+                        candArea = turf.area(turf.polygon([coords]));
+                    }
+                } catch (e) {
+                    // Ignore turf errors on self-intersection
+                }
+
+                const first = this.points[0];
+                const pixDist = map.latLngToContainerPoint(latlng).distanceTo(map.latLngToContainerPoint(first));
+                if (this.points.length >= 3 && (pixDist < 20 || latlng.distanceTo(first) < 10)) {
+                    this.updateCursorMarker(latlng, `Clique para fechar o polígono (${this.formatArea(candArea)})`);
+                } else {
+                    this.updateCursorMarker(latlng, `Área: ~${this.formatArea(candArea)}`);
                 }
             }
-
-            const tipText = (this.points.length === 1)
-                ? `+ ${this.formatDistance(segDist)}`
-                : `+ ${this.formatDistance(segDist)} (Total: ${this.formatDistance(candidateTotal)})`;
-
-            this.updateCursorMarker(latlng, tipText);
         },
 
         updateCursorMarker(latlng, text) {
@@ -2836,6 +3101,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     map.removeLayer(this.rubberbandPolyline);
                 }
             }
+            if (this.rubberbandPolygon) {
+                this.rubberbandPolygon.setLatLngs([]);
+                if (map.hasLayer(this.rubberbandPolygon)) {
+                    map.removeLayer(this.rubberbandPolygon);
+                }
+            }
             if (this.cursorMarker) {
                 if (map.hasLayer(this.cursorMarker)) {
                     map.removeLayer(this.cursorMarker);
@@ -2843,32 +3114,114 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         },
 
-        updatePolyline() {
-            if (!this.mainPolyline) {
-                this.mainPolyline = L.polyline(this.points, {
-                    pane: 'measurePane',
-                    color: '#16a34a',
-                    weight: 3.5,
-                    opacity: 0.9,
-                    lineCap: 'round',
-                    lineJoin: 'round',
-                    interactive: false
-                }).addTo(map);
+        updateShape() {
+            if (this.mode === 'distance') {
+                if (this.mainPolygon) {
+                    map.removeLayer(this.mainPolygon);
+                    this.mainPolygon = null;
+                }
+                if (!this.mainPolyline) {
+                    this.mainPolyline = L.polyline(this.points, {
+                        pane: 'measurePane',
+                        color: '#16a34a',
+                        weight: 3.5,
+                        opacity: 0.9,
+                        lineCap: 'round',
+                        lineJoin: 'round',
+                        interactive: false
+                    }).addTo(map);
+                } else {
+                    this.mainPolyline.setLatLngs(this.points);
+                    if (!map.hasLayer(this.mainPolyline)) {
+                        this.mainPolyline.addTo(map);
+                    }
+                }
             } else {
-                this.mainPolyline.setLatLngs(this.points);
-                if (!map.hasLayer(this.mainPolyline)) {
-                    this.mainPolyline.addTo(map);
+                // Area mode
+                if (this.points.length < 3) {
+                    if (this.mainPolygon) {
+                        map.removeLayer(this.mainPolygon);
+                        this.mainPolygon = null;
+                    }
+                    if (!this.mainPolyline) {
+                        this.mainPolyline = L.polyline(this.points, {
+                            pane: 'measurePane',
+                            color: '#16a34a',
+                            weight: 2.8,
+                            opacity: 0.9,
+                            interactive: false
+                        }).addTo(map);
+                    } else {
+                        this.mainPolyline.setLatLngs(this.points);
+                        if (!map.hasLayer(this.mainPolyline)) {
+                            this.mainPolyline.addTo(map);
+                        }
+                    }
+                } else {
+                    if (this.mainPolyline) {
+                        map.removeLayer(this.mainPolyline);
+                        this.mainPolyline = null;
+                    }
+                    if (!this.mainPolygon) {
+                        this.mainPolygon = L.polygon(this.points, {
+                            pane: 'measurePane',
+                            color: '#15803d',
+                            weight: 2.8,
+                            fillColor: '#22c55e',
+                            fillOpacity: this.isFinished ? 0.28 : 0.18,
+                            dashArray: this.isFinished ? null : '6, 4',
+                            lineCap: 'round',
+                            lineJoin: 'round',
+                            interactive: false
+                        }).addTo(map);
+                    } else {
+                        this.mainPolygon.setLatLngs(this.points);
+                        this.mainPolygon.setStyle({
+                            fillOpacity: this.isFinished ? 0.28 : 0.18,
+                            dashArray: this.isFinished ? null : '6, 4',
+                            weight: this.isFinished ? 3.0 : 2.8
+                        });
+                        if (!map.hasLayer(this.mainPolygon)) {
+                            this.mainPolygon.addTo(map);
+                        }
+                    }
                 }
             }
         },
 
         calculateTotal() {
-            let total = 0;
-            for (let i = 1; i < this.points.length; i++) {
-                total += this.points[i - 1].distanceTo(this.points[i]);
+            if (this.mode === 'distance') {
+                let total = 0;
+                for (let i = 1; i < this.points.length; i++) {
+                    total += this.points[i - 1].distanceTo(this.points[i]);
+                }
+                this.totalDistance = total;
+                return total;
+            } else {
+                // Area mode
+                if (this.points.length < 3) {
+                    this.totalAreaSqM = 0;
+                    let perim = 0;
+                    for (let i = 1; i < this.points.length; i++) {
+                        perim += this.points[i - 1].distanceTo(this.points[i]);
+                    }
+                    this.totalDistance = perim;
+                    return 0;
+                }
+
+                try {
+                    if (window.turf) {
+                        const coords = this.points.map(p => [p.lng, p.lat]);
+                        coords.push([this.points[0].lng, this.points[0].lat]);
+                        const poly = turf.polygon([coords]);
+                        this.totalAreaSqM = turf.area(poly);
+                        this.totalDistance = turf.length(poly, { units: 'kilometers' }) * 1000;
+                    }
+                } catch (e) {
+                    console.warn('Erro no cálculo de área com turf:', e);
+                }
+                return this.totalAreaSqM;
             }
-            this.totalDistance = total;
-            return total;
         },
 
         refreshMarkers() {
@@ -2876,7 +3229,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 let type = 'intermediate';
                 if (idx === 0) {
                     type = 'start';
-                } else if (idx === this.vertexMarkers.length - 1 && this.isFinished) {
+                } else if (idx === this.vertexMarkers.length - 1 && this.isFinished && this.mode === 'distance') {
                     type = 'end';
                 }
                 marker.setIcon(this.createVertexIcon(type));
@@ -2901,6 +3254,7 @@ document.addEventListener('DOMContentLoaded', () => {
         },
 
         formatDistance(meters) {
+            if (!meters || meters < 1) return '0 m';
             if (meters < 1000) {
                 return `${Math.round(meters)} m`;
             }
@@ -2908,50 +3262,95 @@ document.addEventListener('DOMContentLoaded', () => {
             return `${km.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} km`;
         },
 
+        formatArea(sqMeters) {
+            if (!sqMeters || sqMeters <= 0) return '0,00 ha';
+            const ha = sqMeters / 10000;
+            if (ha >= 0.01) {
+                return `${ha.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ha`;
+            }
+            return `${Math.round(sqMeters).toLocaleString('pt-BR')} m²`;
+        },
+
         updateUI() {
             const totalEl = document.getElementById('measure-total-val');
             const subEl = document.getElementById('measure-points-sub');
             const hintEl = document.getElementById('measure-hint');
+            const miniBadge = document.getElementById('measure-mini-badge');
             const btnUndo = document.getElementById('btn-measure-undo');
             const btnClear = document.getElementById('btn-measure-clear');
             const btnFinish = document.getElementById('btn-measure-finish');
 
             const count = this.points.length;
+            const minPoints = (this.mode === 'area') ? 3 : 2;
 
-            if (totalEl) {
-                totalEl.textContent = this.formatDistance(this.totalDistance);
-            }
+            if (this.mode === 'distance') {
+                const distStr = this.formatDistance(this.totalDistance);
+                if (totalEl) totalEl.textContent = distStr;
+                if (miniBadge) miniBadge.textContent = distStr;
 
-            const miniBadge = document.getElementById('measure-mini-badge');
-            if (miniBadge) {
-                miniBadge.textContent = this.formatDistance(this.totalDistance);
-            }
-
-            if (subEl) {
-                if (count === 0) {
-                    subEl.textContent = 'Nenhum ponto marcado';
-                } else if (this.isFinished) {
-                    subEl.textContent = `${count} ${count === 1 ? 'ponto' : 'pontos'} • Medição concluída`;
-                } else {
-                    subEl.textContent = `${count} ${count === 1 ? 'ponto marcado' : 'pontos marcados'}`;
+                if (subEl) {
+                    if (count === 0) {
+                        subEl.textContent = 'Nenhum ponto marcado';
+                    } else if (this.isFinished) {
+                        subEl.textContent = `${count} ${count === 1 ? 'ponto' : 'pontos'} • Medição concluída`;
+                    } else {
+                        subEl.textContent = `${count} ${count === 1 ? 'ponto marcado' : 'pontos marcados'}`;
+                    }
                 }
-            }
 
-            if (hintEl) {
-                if (count === 0) {
-                    hintEl.innerHTML = '<i class="fa-solid fa-circle-info"></i> Clique no mapa para marcar o ponto inicial.';
-                } else if (this.isFinished) {
-                    hintEl.innerHTML = '<i class="fa-solid fa-circle-check" style="color: #16a34a;"></i> Medição concluída. Use Limpar para recomeçar ou Fechar no topo.';
-                } else if (count === 1) {
-                    hintEl.innerHTML = '<i class="fa-solid fa-circle-info"></i> Mova o cursor e clique no mapa para o próximo ponto.';
-                } else {
-                    hintEl.innerHTML = '<i class="fa-solid fa-circle-info"></i> Clique para continuar ou duplo-clique / Concluir para finalizar.';
+                if (hintEl) {
+                    if (count === 0) {
+                        hintEl.innerHTML = '<i class="fa-solid fa-circle-info"></i> Clique no mapa para marcar o ponto inicial.';
+                    } else if (this.isFinished) {
+                        hintEl.innerHTML = '<i class="fa-solid fa-circle-check" style="color: #16a34a;"></i> Medição concluída. Use Limpar para recomeçar ou Fechar.';
+                    } else if (count === 1) {
+                        hintEl.innerHTML = '<i class="fa-solid fa-circle-info"></i> Mova o cursor e clique no mapa para o próximo ponto.';
+                    } else {
+                        hintEl.innerHTML = '<i class="fa-solid fa-circle-info"></i> Clique para continuar ou duplo-clique / Concluir para finalizar.';
+                    }
+                }
+            } else {
+                // Mode: Area
+                const areaStr = this.formatArea(this.totalAreaSqM);
+                if (totalEl) totalEl.textContent = areaStr;
+                if (miniBadge) miniBadge.textContent = areaStr;
+
+                if (subEl) {
+                    if (count === 0) {
+                        subEl.textContent = 'Nenhum vértice marcado';
+                    } else if (count === 1) {
+                        subEl.textContent = '1 vértice marcado';
+                    } else if (count === 2) {
+                        subEl.textContent = `2 vértices • Segmento: ${this.formatDistance(this.totalDistance)}`;
+                    } else {
+                        const m2Str = `${Math.round(this.totalAreaSqM).toLocaleString('pt-BR')} m²`;
+                        const perimStr = `Perímetro: ${this.formatDistance(this.totalDistance)}`;
+                        if (this.isFinished) {
+                            subEl.textContent = `${count} vértices • ${m2Str} • ${perimStr} • Concluído`;
+                        } else {
+                            subEl.textContent = `${count} vértices • ${m2Str} • ${perimStr}`;
+                        }
+                    }
+                }
+
+                if (hintEl) {
+                    if (count === 0) {
+                        hintEl.innerHTML = '<i class="fa-solid fa-circle-info"></i> Clique no mapa para marcar o 1º vértice do polígono.';
+                    } else if (this.isFinished) {
+                        hintEl.innerHTML = `<i class="fa-solid fa-circle-check" style="color: #16a34a;"></i> Polígono de <strong>${areaStr}</strong> fixado no mapa. Use Limpar para novo cálculo.`;
+                    } else if (count === 1) {
+                        hintEl.innerHTML = '<i class="fa-solid fa-circle-info"></i> Clique no mapa para marcar o 2º vértice.';
+                    } else if (count === 2) {
+                        hintEl.innerHTML = '<i class="fa-solid fa-circle-info"></i> Clique para marcar o 3º vértice e formar a área.';
+                    } else {
+                        hintEl.innerHTML = '<i class="fa-solid fa-circle-info"></i> Clique para mais vértices ou clique no 1º ponto / Concluir para fechar.';
+                    }
                 }
             }
 
             if (btnUndo) btnUndo.disabled = (count === 0);
             if (btnClear) btnClear.disabled = (count === 0);
-            if (btnFinish) btnFinish.disabled = (count < 2 || this.isFinished);
+            if (btnFinish) btnFinish.disabled = (count < minPoints || this.isFinished);
         }
     };
 
