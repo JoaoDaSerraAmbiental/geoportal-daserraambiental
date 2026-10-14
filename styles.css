@@ -1389,6 +1389,23 @@ path.leaflet-interactive:focus-visible {
     border-top: 1.5px solid #a7f3d0;
 }
 
+.popup-qa-table tr.qa-row-disponivel {
+    background-color: #f0fdf4;
+    font-weight: 700;
+    color: #15803d;
+    border-top: 1.5px dashed #86efac;
+}
+
+.popup-qa-table tr.qa-row-disponivel td {
+    color: #15803d;
+    font-weight: 700;
+    background-color: #f0fdf4;
+}
+
+.popup-qa-table tr.qa-row-disponivel td strong {
+    color: #15803d;
+}
+
 /* Tabela de atributos completa para Áreas de Projetos */
 .project-popup {
     min-width: 270px;

@@ -2244,7 +2244,11 @@ document.addEventListener('DOMContentLoaded', () => {
             'area (ha)': 'Área (ha)',
             'área (ha)': 'Área (ha)',
             'area': 'Área (ha)',
-            'área': 'Área (ha)'
+            'área': 'Área (ha)',
+            'area disponivel': 'Área Disponível',
+            'área disponível': 'Área Disponível',
+            'vegetacao excedente': 'Vegetação Excedente',
+            'vegetação excedente': 'Vegetação Excedente'
         };
 
         const normK = clean.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
@@ -2312,6 +2316,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 </thead>
                 <tbody>`;
 
+            // Detecta se já existe linha de Área Disponível e obtém o valor da Vegetação Excedente base
+            let excedenteAreaHa = null;
+            let hasDisponivelRow = false;
+
+            qaData.forEach(row => {
+                const tema = String(row['Tema'] || row['tema'] || row['TEMA'] || '');
+                const normTema = tema.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                if (normTema.includes('disponivel')) {
+                    hasDisponivelRow = true;
+                }
+                if (normTema.includes('excedente')) {
+                    const rawVal = row['Área (ha)'] || row['area (ha)'] || row['Area (ha)'] || row['Área'] || row['area'] || 0;
+                    const parsed = typeof rawVal === 'number' ? rawVal : parseFloat(String(rawVal).replace(',', '.'));
+                    if (!isNaN(parsed)) {
+                        excedenteAreaHa = parsed;
+                    }
+                }
+            });
+
             qaData.forEach(row => {
                 const tema = row['Tema'] || row['tema'] || row['TEMA'] || '-';
                 const area = row['Área (ha)'] || row['area (ha)'] || row['Area (ha)'] || row['Área'] || 0;
@@ -2319,20 +2342,55 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const normTema = tema.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
                 const isTotal = normTema.includes('propriedade') || normTema.includes('limite');
+                const isDisponivel = normTema.includes('disponivel');
 
-                const areaNum = typeof area === 'number' ? area : parseFloat(area) || 0;
-                const percNum = typeof perc === 'number' ? perc : parseFloat(perc) || 0;
+                const areaNum = typeof area === 'number' ? area : (parseFloat(String(area).replace(',', '.')) || 0);
+                let percNum = typeof perc === 'number' ? perc : (parseFloat(String(perc).replace(',', '.')) || 0);
+
+                if (isDisponivel && excedenteAreaHa && excedenteAreaHa > 0 && (row['%'] === undefined || row['%_excedente'])) {
+                    percNum = (areaNum / excedenteAreaHa) * 100;
+                }
 
                 content += `
-                    <tr class="${isTotal ? 'qa-row-total' : ''}">
-                        <td><strong>${formatAttributeKey(tema)}</strong></td>
+                    <tr class="${isTotal ? 'qa-row-total' : (isDisponivel ? 'qa-row-disponivel' : '')}">
+                        <td><strong>${isDisponivel ? '<i class="fa-solid fa-circle-check" style="margin-right: 5px; color: #16a34a; font-size: 0.72rem;"></i>' : ''}${formatAttributeKey(tema)}</strong></td>
                         <td style="text-align: right; font-weight: 600;">${areaNum.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})} ha</td>
-                        <td style="text-align: right; font-weight: 600;">${percNum.toLocaleString('pt-BR', {minimumFractionDigits: 1, maximumFractionDigits: 2})}%</td>
+                        <td style="text-align: right; font-weight: 600;" ${isDisponivel ? 'title="% calculada sobre a Vegetação Excedente"' : ''}>${percNum.toLocaleString('pt-BR', {minimumFractionDigits: 1, maximumFractionDigits: 2})}%${isDisponivel ? '*' : ''}</td>
                     </tr>
                 `;
             });
 
+            // Se ainda não houver linha de Área Disponível e houver excedente, adiciona dinamicamente
+            let hasDisponivelNote = hasDisponivelRow;
+            if (!hasDisponivelRow && excedenteAreaHa !== null) {
+                let areaDisp = excedenteAreaHa;
+                if (props) {
+                    const custom = props.area_disponivel ?? props['Área Disponível'] ?? props['area_disponivel_ha'] ?? props['Area Disponivel'];
+                    if (custom !== undefined && custom !== null) {
+                        const parsedCustom = typeof custom === 'number' ? custom : parseFloat(String(custom).replace(',', '.'));
+                        if (!isNaN(parsedCustom)) {
+                            areaDisp = parsedCustom;
+                        }
+                    }
+                }
+
+                const percDisp = excedenteAreaHa > 0 ? (areaDisp / excedenteAreaHa) * 100 : 100.0;
+                hasDisponivelNote = true;
+
+                content += `
+                    <tr class="qa-row-disponivel">
+                        <td><strong style="color: #15803d;"><i class="fa-solid fa-circle-check" style="margin-right: 5px; color: #16a34a; font-size: 0.72rem;"></i>Área Disponível</strong></td>
+                        <td style="text-align: right; font-weight: 700; color: #15803d;">${areaDisp.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})} ha</td>
+                        <td style="text-align: right; font-weight: 700; color: #15803d;" title="% em relação à Vegetação Excedente">${percDisp.toLocaleString('pt-BR', {minimumFractionDigits: 1, maximumFractionDigits: 2})}%*</td>
+                    </tr>
+                `;
+            }
+
             content += `</tbody></table>`;
+
+            if (hasDisponivelNote) {
+                content += `<div style="font-size: 0.68rem; color: #166534; margin-top: -3px; margin-bottom: 8px; text-align: right; font-style: italic;">* % calculada com base na Vegetação Excedente</div>`;
+            }
         }
 
         // Tabela de atributos convencionais (exibida apenas quando NÃO houver Quadro de Áreas)
