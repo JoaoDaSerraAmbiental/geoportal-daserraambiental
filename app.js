@@ -36,6 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
         layers: [baseTileLayers['google-satellite']], // Default to Google Satellite as requested
         zoomControl: false
     });
+    window.map = map;
 
     // Add custom zoom control in top-right
     L.control.zoom({ position: 'topright' }).addTo(map);
@@ -46,14 +47,6 @@ document.addEventListener('DOMContentLoaded', () => {
     map.createPane('outrosPane');
     map.getPane('outrosPane').style.zIndex = 370;
     map.getPane('outrosPane').style.pointerEvents = 'auto';
-
-    // Dedicated Canvas Renderer for Outros Limites macro vector layers (UGRHIs & Regiões Hidrográficas ANA)
-    // Canvas hardware acceleration eliminates SVG DOM reflow lag and drag slippage, keeping boundaries 100% in sync with the terrain
-    const outrosCanvasRenderer = L.canvas({
-        pane: 'outrosPane',
-        padding: 0.5,
-        tolerance: 8
-    });
 
     map.createPane('muniPane');
     map.getPane('muniPane').style.zIndex = 375;
@@ -107,6 +100,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Data maps
     const projectLayers = {};
     const outrosLayers = {};
+    window.outrosLayers = outrosLayers;
+    window.projectLayers = projectLayers;
     let allProjectBounds = L.latLngBounds();
 
     // ----------------------------------------------------------------------
@@ -599,7 +594,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const geoLayer = L.geoJSON(data, {
             pane: isMuni ? 'muniPane' : 'outrosPane',
-            renderer: (isUgrhi || isAna) ? outrosCanvasRenderer : undefined,
             style: {
                 color: color,
                 weight: isMuni ? 1 : (isUgrhi ? 1.8 : 2.2),
@@ -741,15 +735,52 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     updateMuniPointerEvents();
 
-    // Disable pointer-events on outrosPane during active panning/dragging so dragging never stutters from hover calculations
-    map.on('movestart dragstart', () => {
-        const pane = map.getPane('outrosPane');
-        if (pane) pane.style.pointerEvents = 'none';
+    // Global Synchronizer: Ensures all custom pane renderers (outrosPane, measurePane, etc.)
+    // and standard overlay renderers remain 100% geographically pinned and never desynchronize
+    // during fast zooming, view transitions, or window/container resizing.
+    function syncAllRenderers() {
+        if (!map) return;
+        try {
+            if (map._renderer && typeof map._renderer._reset === 'function') {
+                map._renderer._reset();
+            }
+            if (map._paneRenderers) {
+                for (const p in map._paneRenderers) {
+                    const r = map._paneRenderers[p];
+                    if (r && typeof r._reset === 'function') {
+                        r._reset();
+                    }
+                }
+            }
+            if (window.MeasureTool && window.MeasureTool.isActive) {
+                if (window.MeasureTool.mainPolyline && typeof window.MeasureTool.mainPolyline.redraw === 'function') {
+                    window.MeasureTool.mainPolyline.redraw();
+                }
+                if (window.MeasureTool.mainPolygon && typeof window.MeasureTool.mainPolygon.redraw === 'function') {
+                    window.MeasureTool.mainPolygon.redraw();
+                }
+            }
+        } catch (e) {
+            console.warn('Renderer sync notice:', e);
+        }
+    }
+    window.syncAllRenderers = syncAllRenderers;
+
+    // Attach synchronizer to view changes and animation ends
+    map.on('zoomend moveend resize', () => {
+        syncAllRenderers();
+        requestAnimationFrame(() => syncAllRenderers());
     });
-    map.on('moveend dragend', () => {
-        const pane = map.getPane('outrosPane');
-        if (pane) pane.style.pointerEvents = 'auto';
-    });
+
+    // Auto-track map container resizing (sidebar toggle, viewport resize)
+    const mapContainer = document.getElementById('map');
+    if (mapContainer && window.ResizeObserver) {
+        const ro = new ResizeObserver(() => {
+            map.invalidateSize({ pan: false });
+            syncAllRenderers();
+        });
+        ro.observe(mapContainer);
+    }
 
     // Close municipality tooltips/popups and reset highlight when zooming outside allowed scale
     map.on('zoomend', () => {
@@ -2805,6 +2836,9 @@ document.addEventListener('DOMContentLoaded', () => {
             map.getContainer().classList.remove('measure-active');
 
             this.updateShape();
+            if (this.mainPolygon) this.mainPolygon.redraw();
+            if (this.mainPolyline) this.mainPolyline.redraw();
+            if (window.syncAllRenderers) window.syncAllRenderers();
             this.calculateTotal();
 
             // In area mode, add closing edge segment and center badge
@@ -3120,17 +3154,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (map.hasLayer(this.rubberbandPolyline)) {
                     map.removeLayer(this.rubberbandPolyline);
                 }
+                this.rubberbandPolyline = null;
             }
             if (this.rubberbandPolygon) {
                 this.rubberbandPolygon.setLatLngs([]);
                 if (map.hasLayer(this.rubberbandPolygon)) {
                     map.removeLayer(this.rubberbandPolygon);
                 }
+                this.rubberbandPolygon = null;
             }
             if (this.cursorMarker) {
                 if (map.hasLayer(this.cursorMarker)) {
                     map.removeLayer(this.cursorMarker);
                 }
+                this.cursorMarker = null;
             }
         },
 
@@ -3155,6 +3192,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (!map.hasLayer(this.mainPolyline)) {
                         this.mainPolyline.addTo(map);
                     }
+                    this.mainPolyline.redraw();
                 }
             } else {
                 // Area mode
@@ -3176,6 +3214,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (!map.hasLayer(this.mainPolyline)) {
                             this.mainPolyline.addTo(map);
                         }
+                        this.mainPolyline.redraw();
                     }
                 } else {
                     if (this.mainPolyline) {
@@ -3204,6 +3243,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (!map.hasLayer(this.mainPolygon)) {
                             this.mainPolygon.addTo(map);
                         }
+                        this.mainPolygon.redraw();
                     }
                 }
             }

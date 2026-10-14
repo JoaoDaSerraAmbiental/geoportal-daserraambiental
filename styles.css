@@ -1129,6 +1129,15 @@ path.leaflet-interactive:focus-visible {
     -webkit-tap-highlight-color: transparent !important;
 }
 
+/* Ensure all custom panes SVGs and canvases are never constrained by browser or inherited sizing */
+.leaflet-pane > svg,
+.leaflet-pane > canvas,
+.leaflet-container svg,
+.leaflet-container canvas {
+    max-width: none !important;
+    max-height: none !important;
+}
+
 /* Position Leaflet controls cleanly at bottom-right */
 .leaflet-bottom.leaflet-right {
     z-index: 998;
