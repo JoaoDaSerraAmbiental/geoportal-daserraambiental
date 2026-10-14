@@ -19,7 +19,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
     
     <!-- Custom Styles -->
-    <link rel="stylesheet" href="styles.css?v=32">
+    <link rel="stylesheet" href="styles.css?v=33">
 </head>
 <body>
     <div id="app-container">
@@ -387,23 +387,13 @@
                                 <!-- Outros Limites layers injected dynamically -->
                             </div>
 
-                            <!-- Seletor e Pesquisa de Municípios -->
+                            <!-- Seletor de Municípios -->
                             <div class="muni-search-box">
-                                <label for="muni-search-right" class="muni-search-label">
+                                <label for="muni-select" class="muni-search-label">
                                     <i class="fa-solid fa-city"></i> Ir para Município:
                                 </label>
-                                <div class="muni-input-wrapper">
-                                    <i class="fa-solid fa-magnifying-glass muni-input-icon"></i>
-                                    <input type="text" id="muni-search-right" class="muni-search-input-right" list="muni-datalist-right" placeholder="Digite o município (ex: Joanópolis)..." autocomplete="off">
-                                    <datalist id="muni-datalist-right">
-                                        <!-- Carregado dinamicamente com os municípios de SP -->
-                                    </datalist>
-                                    <button type="button" class="btn-clear-muni-right hidden" id="btn-clear-muni-right" title="Limpar pesquisa">
-                                        <i class="fa-solid fa-xmark"></i>
-                                    </button>
-                                </div>
                                 <select id="muni-select" class="muni-select" title="Selecione um município do Estado de SP">
-                                    <option value="">-- Ou selecione na lista de municípios --</option>
+                                    <option value="">-- Selecione um município --</option>
                                 </select>
                             </div>
                         </div>
@@ -519,6 +509,6 @@
     <script src="municipios_bacias_data.js?v=18"></script>
 
     <!-- Custom Application Logic -->
-    <script src="app.js?v=34"></script>
+    <script src="app.js?v=35"></script>
 </body>
 </html>

@@ -1269,9 +1269,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function initOutrosMunicipalitySelector() {
         const muniSelect = document.getElementById('muni-select');
-        const muniDatalist = document.getElementById('muni-datalist-right');
-        const muniSearchInput = document.getElementById('muni-search-right');
-        const btnClear = document.getElementById('btn-clear-muni-right');
 
         const outrosItem = outrosLayers['municipios_SP'];
         if (!outrosItem || !outrosItem.data || !outrosItem.data.features) return;
@@ -1283,7 +1280,7 @@ document.addEventListener('DOMContentLoaded', () => {
             .sort((a, b) => a.localeCompare(b, 'pt-BR'));
 
         if (muniSelect) {
-            muniSelect.innerHTML = '<option value="">-- Ou selecione na lista de municípios --</option>';
+            muniSelect.innerHTML = '<option value="">-- Selecione um município --</option>';
             sortedMunis.forEach(muni => {
                 const opt = document.createElement('option');
                 opt.value = muni;
@@ -1293,56 +1290,11 @@ document.addEventListener('DOMContentLoaded', () => {
             muniSelect.addEventListener('change', (e) => {
                 const val = e.target.value;
                 if (val) {
-                    if (muniSearchInput) {
-                        muniSearchInput.value = val;
-                        if (btnClear) btnClear.classList.remove('hidden');
-                    }
                     jumpToMunicipalityByName(val);
                 }
             });
         }
 
-        if (muniDatalist) {
-            muniDatalist.innerHTML = '';
-            sortedMunis.forEach(muni => {
-                const opt = document.createElement('option');
-                opt.value = muni;
-                muniDatalist.appendChild(opt);
-            });
-        }
-
-        if (muniSearchInput) {
-            const handleSearch = () => {
-                const val = muniSearchInput.value.trim();
-                if (btnClear) btnClear.classList.toggle('hidden', val.length === 0);
-                if (!val) return;
-
-                const normVal = val.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-                const match = sortedMunis.find(m => m.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '') === normVal);
-                if (match) {
-                    if (muniSelect) muniSelect.value = match;
-                    jumpToMunicipalityByName(match);
-                }
-            };
-
-            muniSearchInput.addEventListener('input', handleSearch);
-            muniSearchInput.addEventListener('change', handleSearch);
-            muniSearchInput.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    handleSearch();
-                }
-            });
-        }
-
-        if (btnClear && muniSearchInput) {
-            btnClear.addEventListener('click', (e) => {
-                e.stopPropagation();
-                muniSearchInput.value = '';
-                if (muniSelect) muniSelect.value = '';
-                btnClear.classList.add('hidden');
-            });
-        }
     }
 
     initOutrosMunicipalitySelector();
