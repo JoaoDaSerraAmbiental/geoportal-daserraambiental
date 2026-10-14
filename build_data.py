@@ -85,6 +85,14 @@ def build_dataset():
                             # Attach matching Quadro de Área data if present
                             norm_raw = normalize_text(raw_key)
                             matched_qa = qa_data_map.get(norm_raw)
+                            if not matched_qa:
+                                clean_raw = norm_raw.replace('faz. ', '').replace('fazenda ', '').replace('sitio ', '').strip()
+                                for qk, qrows in qa_data_map.items():
+                                    clean_qk = qk.replace('faz. ', '').replace('fazenda ', '').replace('sitio ', '').strip()
+                                    if clean_raw == clean_qk:
+                                        matched_qa = qrows
+                                        break
+
                             if matched_qa:
                                 data['quadro_area'] = matched_qa
                                 for feat in data.get('features', []):

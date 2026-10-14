@@ -133,15 +133,22 @@ document.addEventListener('DOMContentLoaded', () => {
         "area_propriedade__Sitio Sao Joao": "Sítio São João",
         "area_propriedade__Sítio São Jorge": "Sítio São Jorge",
 
-        // Floresta Pronta
-        "floresta_pronta__Anahata": "Anahata",
-        "floresta_pronta__Fazenda Rio Grande": "Fazenda Rio Grande",
-        "floresta_pronta__Instituto Olhos Dagua": "Instituto Olhos D'Água",
-        "floresta_pronta__Quinhao": "Quinhão",
-        "floresta_pronta__Recanto do Alento": "Recanto do Alento",
-        "floresta_pronta__REDS 3": "REDS 3",
-        "floresta_pronta__REDS 4": "REDS 4",
-        "floresta_pronta__Sitio Vista Alegre": "Sítio Vista Alegre",
+        // Banco de Áreas - Floresta Pronta
+        "floresta_pronta__Faz. Aguas do Cedro": "Faz. Águas do Cedro",
+        "floresta_pronta__Faz. Bela Vista": "Faz. Bela Vista",
+        "floresta_pronta__Faz. Guaiuvira": "Faz. Guaiuvira",
+        "floresta_pronta__Faz. Laranjal": "Faz. Laranjal",
+        "floresta_pronta__Faz. Novo Horizonte": "Faz. Novo Horizonte",
+        "floresta_pronta__Faz. Rio Grande": "Faz. Rio Grande",
+        "floresta_pronta__Sao Joao das Montanhas": "Faz. São João das Montanhas",
+        "floresta_pronta__Faz. Sao Pedro": "Faz. São Pedro",
+        "floresta_pronta__Montanhas do Japi": "Montanhas do Japi",
+        "floresta_pronta__Recanto do Saua": "Recanto do Sauá",
+        "floresta_pronta__Sitio Alvorada": "Sítio Alvorada",
+        "floresta_pronta__Sitio Ernane": "Sítio Ernane",
+        "floresta_pronta__Sítio José Eduardo": "Sítio José Eduardo",
+        "floresta_pronta__Sitio Marilia": "Sítio Marília",
+        "floresta_pronta__Sitio Sao Benedito": "Sítio São Benedito",
         "floresta_mata_nativa__Faz. Aguas do Cedro": "Faz. Águas do Cedro",
         "floresta_mata_nativa__Faz. Bela Vista": "Faz. Bela Vista",
         "floresta_mata_nativa__Faz. Guaiuvira": "Faz. Guaiuvira",
@@ -154,6 +161,7 @@ document.addEventListener('DOMContentLoaded', () => {
         "floresta_mata_nativa__Recanto do Saua": "Recanto do Sauá",
         "floresta_mata_nativa__Sitio Alvorada": "Sítio Alvorada",
         "floresta_mata_nativa__Sitio Ernane": "Sítio Ernane",
+        "floresta_mata_nativa__Sítio José Eduardo": "Sítio José Eduardo",
         "floresta_mata_nativa__Sitio Marilia": "Sítio Marília",
         "floresta_mata_nativa__Sitio Sao Benedito": "Sítio São Benedito",
 
@@ -489,44 +497,47 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const geoLayerOptions = {
             pane: paneName,
-            interactive: !isMataNativa,
+            interactive: true,
             style: (feature) => getFeatureStyle(feature, color, isPropriedade ? 0 : (isMataNativa ? 0.55 : 0.45), cat)
         };
 
-        if (!isMataNativa) {
-            geoLayerOptions.onEachFeature = (feature, layer) => {
-                // Interactive hover style
-                layer.on({
-                    mouseover: (e) => {
-                        if (window.MeasureTool && window.MeasureTool.isActive && !window.MeasureTool.isFinished) return;
-                        const l = e.target;
-                        if (isPropriedade) {
-                            l.setStyle({ weight: 3.2, fillOpacity: 0 });
-                        } else {
-                            l.setStyle({ weight: 4, fillOpacity: 0.7 });
-                            if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
-                                l.bringToFront();
-                            }
-                        }
-                    },
-                    mouseout: (e) => {
-                        if (window.MeasureTool && window.MeasureTool.isActive && !window.MeasureTool.isFinished) return;
-                        const l = e.target;
-                        const currentOpacity = (projectLayers[key] && projectLayers[key].opacity !== undefined) ? projectLayers[key].opacity : 0.45;
-                        l.setStyle(getFeatureStyle(l.feature || feature, color, currentOpacity, cat));
-                    },
-                    click: (e) => {
-                        if (window.MeasureTool && window.MeasureTool.isActive && !window.MeasureTool.isFinished) {
-                            L.DomEvent.stopPropagation(e);
-                            window.MeasureTool.handleMapClick(e.latlng);
+        geoLayerOptions.onEachFeature = (feature, layer) => {
+            // Interactive hover style
+            layer.on({
+                mouseover: (e) => {
+                    if (window.MeasureTool && window.MeasureTool.isActive && !window.MeasureTool.isFinished) return;
+                    const l = e.target;
+                    if (isPropriedade) {
+                        l.setStyle({ weight: 3.2, fillOpacity: 0 });
+                    } else if (isMataNativa) {
+                        l.setStyle({ weight: 1.8, fillOpacity: 0.75 });
+                    } else {
+                        l.setStyle({ weight: 4, fillOpacity: 0.7 });
+                        if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
+                            l.bringToFront();
                         }
                     }
-                });
+                },
+                mouseout: (e) => {
+                    if (window.MeasureTool && window.MeasureTool.isActive && !window.MeasureTool.isFinished) return;
+                    const l = e.target;
+                    const currentOpacity = (projectLayers[key] && projectLayers[key].opacity !== undefined) ? projectLayers[key].opacity : (isMataNativa ? 0.55 : 0.45);
+                    l.setStyle(getFeatureStyle(l.feature || feature, color, currentOpacity, cat));
+                },
+                click: (e) => {
+                    if (window.MeasureTool && window.MeasureTool.isActive && !window.MeasureTool.isFinished) {
+                        L.DomEvent.stopPropagation(e);
+                        window.MeasureTool.handleMapClick(e.latlng);
+                    }
+                }
+            });
 
-                // Attach Popup
-                layer.bindPopup(() => createPopupContent(feature.properties, projName, getFeatureColor(feature, color), data.quadro_area || (feature.properties ? feature.properties._quadro_area : null)));
-            };
-        }
+            // Attach Popup (busca Quadro de Áreas diretamente ou da propriedade vinculada)
+            layer.bindPopup(() => {
+                const qa = data.quadro_area || (feature.properties ? feature.properties._quadro_area : null) || resolveQuadroAreaForProject(key);
+                return createPopupContent(feature.properties, projName, getFeatureColor(feature, color), qa);
+            });
+        };
 
         // Build Leaflet GeoJSON layer
         const geoLayer = L.geoJSON(data, geoLayerOptions);
@@ -557,6 +568,54 @@ document.addEventListener('DOMContentLoaded', () => {
             visible: true,
             opacity: isPropriedade ? 0 : (isMataNativa ? 0.55 : 0.45)
         };
+    });
+
+    // Helper to resolve Quadro de Áreas for Banco de Áreas
+    function resolveQuadroAreaForProject(k) {
+        if (!k) return null;
+        if (geoData.projetos[k] && geoData.projetos[k].quadro_area) {
+            return geoData.projetos[k].quadro_area;
+        }
+        const norm = (s) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/^(floresta_pronta|floresta_mata_nativa)__/, '').replace(/^faz\.\s*/, '').replace(/^fazenda\s*/, '').replace(/^sitio\s*/, '').trim();
+        const targetNorm = norm(k);
+        for (const [pk, d] of Object.entries(geoData.projetos)) {
+            if (pk.startsWith('floresta_pronta__') && d.quadro_area) {
+                if (norm(pk) === targetNorm) {
+                    return d.quadro_area;
+                }
+            }
+        }
+        return null;
+    }
+
+    // Function to find matching Floresta Mata Nativa key
+    function findMatchingFlorestaMataKey(propKey) {
+        const rawName = propKey.replace(/^floresta_pronta__/, '').trim();
+        const candidate = `floresta_mata_nativa__${rawName}`;
+        if (projectLayers[candidate]) return candidate;
+
+        const norm = (s) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/^(floresta_pronta|floresta_mata_nativa)__/, '').replace(/^faz\.\s*/, '').replace(/^fazenda\s*/, '').replace(/^sitio\s*/, '').trim();
+        const targetNorm = norm(rawName);
+
+        for (const k of Object.keys(projectLayers)) {
+            if (k.startsWith('floresta_mata_nativa__')) {
+                if (norm(k) === targetNorm) return k;
+            }
+        }
+        return null;
+    }
+
+    // Link Floresta Pronta (Limites de Propriedades) and Floresta Mata Nativa (Vegetação)
+    Object.keys(projectLayers).forEach((key) => {
+        if (key.startsWith('floresta_pronta__')) {
+            const propItem = projectLayers[key];
+            const mataKey = findMatchingFlorestaMataKey(key);
+            if (mataKey && projectLayers[mataKey]) {
+                const mataItem = projectLayers[mataKey];
+                propItem.linkedKey = mataKey;
+                mataItem.linkedKey = key;
+            }
+        }
     });
 
     // Helper function to verify if current map zoom/scale allows municipality info balloon
@@ -817,12 +876,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Render Project Layer List Items by Category
     const restauracaoContainer   = document.getElementById('restauracao-layer-list');
     const florestaContainer      = document.getElementById('floresta-layer-list');
-    const florestaMataContainer  = document.getElementById('floresta-mata-layer-list');
     const propriedadeContainer   = document.getElementById('propriedade-layer-list');
 
     if (restauracaoContainer) restauracaoContainer.innerHTML  = '';
     if (florestaContainer) florestaContainer.innerHTML     = '';
-    if (florestaMataContainer) florestaMataContainer.innerHTML = '';
     if (propriedadeContainer) propriedadeContainer.innerHTML  = '';
 
     function buildLayerItem(key, item) {
@@ -831,14 +888,27 @@ document.addEventListener('DOMContentLoaded', () => {
         layerEl.dataset.key = key;
         layerEl.dataset.name = item.name.toLowerCase();
 
-        const isPropriedade = (item.categoria === 'area_propriedade' || item.categoria === 'floresta_pronta');
-        const isMataNativa  = (item.categoria === 'floresta_mata_nativa');
+        const isFlorestaPronta = (item.categoria === 'floresta_pronta');
+        const isPropriedade = (item.categoria === 'area_propriedade');
 
-        const badgeStyle = isPropriedade
-            ? `background-color: transparent; border: 2.5px solid ${item.color}; box-sizing: border-box;`
-            : `background-color: ${item.color};`;
+        let badgeStyle = `background-color: ${item.color};`;
+        if (isPropriedade) {
+            badgeStyle = `background-color: transparent; border: 2.5px solid ${item.color}; box-sizing: border-box;`;
+        } else if (isFlorestaPronta) {
+            // Incorporado: Vegetação (verde) + Limite de Propriedade (borda vermelha)
+            badgeStyle = `background-color: #15803d; border: 2.2px solid #dc2626; box-sizing: border-box;`;
+        }
 
-        const defaultSliderVal = isPropriedade ? 95 : (isMataNativa ? 55 : 45);
+        const defaultSliderVal = isPropriedade ? 95 : (isFlorestaPronta ? 55 : 45);
+
+        // Subtítulo com a área
+        let areaVal = item.areaHa;
+        if (isFlorestaPronta) {
+            const linked = item.linkedKey ? projectLayers[item.linkedKey] : null;
+            if (linked && linked.areaHa) {
+                areaVal = linked.areaHa;
+            }
+        }
 
         layerEl.innerHTML = `
             <div class="layer-main-row">
@@ -847,14 +917,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="color-badge" style="${badgeStyle}"></div>
                     <div>
                         <div class="layer-name" title="${item.name}">${item.name}</div>
-                        ${item.areaHa ? `<div class="layer-subtitle">${item.areaHa} ha</div>` : ''}
+                        ${areaVal ? `<div class="layer-subtitle">${areaVal} ha</div>` : ''}
                     </div>
                 </div>
                 <div class="layer-actions">
-                    <button class="btn-icon btn-zoom-layer" data-key="${key}" title="Aproximar zoom neste projeto">
+                    <button class="btn-icon btn-zoom-layer" data-key="${key}" title="Aproximar zoom nesta propriedade">
                         <i class="fa-solid fa-crosshairs"></i>
                     </button>
-                    <button class="btn-icon btn-expand-layer" data-key="${key}" title="Ajustar opacidade">
+                    <button class="btn-icon btn-expand-layer" data-key="${key}" title="Ajustar opacidade da vegetação">
                         <i class="fa-solid fa-sliders"></i>
                     </button>
                 </div>
@@ -871,18 +941,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let restauracaoCount   = 0;
     let florestaCount      = 0;
-    let florestaMataCount  = 0;
     let propriedadeCount   = 0;
 
     sortedProjectKeys.forEach((key) => {
         const item = projectLayers[key];
         const cat  = projectCategory[key] || 'restauracao';
+
+        // Camadas de floresta_mata_nativa ficam incorporadas diretamente na camada floresta_pronta correspondente
+        if (cat === 'floresta_mata_nativa') {
+            return;
+        }
+
         const el   = buildLayerItem(key, item);
 
-        if (cat === 'floresta_mata_nativa') {
-            if (florestaMataContainer) florestaMataContainer.appendChild(el);
-            florestaMataCount++;
-        } else if (cat === 'floresta_pronta') {
+        if (cat === 'floresta_pronta') {
             if (florestaContainer) florestaContainer.appendChild(el);
             florestaCount++;
         } else if (cat === 'area_propriedade') {
@@ -901,16 +973,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const florBadge = document.getElementById('floresta-count');
     if (florBadge) florBadge.textContent = florestaCount;
 
-    const mataBadge = document.getElementById('floresta-mata-count');
-    if (mataBadge) mataBadge.textContent = florestaMataCount;
-
     const propBadge = document.getElementById('propriedade-count');
     if (propBadge) propBadge.textContent = propriedadeCount;
 
     // Mensagem se categoria vazia
-    if (florestaCount     === 0 && florestaContainer)     florestaContainer.innerHTML     = emptyMsg;
-    if (florestaMataCount === 0 && florestaMataContainer) florestaMataContainer.innerHTML = emptyMsg;
-    if (propriedadeCount  === 0 && propriedadeContainer)  propriedadeContainer.innerHTML  = emptyMsg;
+    if (florestaCount    === 0 && florestaContainer)    florestaContainer.innerHTML    = emptyMsg;
+    if (propriedadeCount === 0 && propriedadeContainer) propriedadeContainer.innerHTML = emptyMsg;
 
 
     // Render Outros Limites Layer List Items
@@ -1084,13 +1152,23 @@ document.addEventListener('DOMContentLoaded', () => {
                     map.removeLayer(item.layer);
                 }
             }
+
+            // Sincroniza camada vinculada (ex: vegetação incorporada em Banco de Áreas)
+            if (item.linkedKey && projectLayers[item.linkedKey]) {
+                const linked = projectLayers[item.linkedKey];
+                linked.visible = targetState;
+                if (targetState) {
+                    if (!map.hasLayer(linked.layer)) map.addLayer(linked.layer);
+                } else {
+                    if (map.hasLayer(linked.layer)) map.removeLayer(linked.layer);
+                }
+            }
         });
 
         // Atualizar checkboxes DOM correspondentes
         let containerId = '';
         if (cat === 'restauracao') containerId = 'restauracao-layer-list';
         else if (cat === 'floresta_pronta') containerId = 'floresta-layer-list';
-        else if (cat === 'floresta_mata_nativa') containerId = 'floresta-mata-layer-list';
         else if (cat === 'area_propriedade') containerId = 'propriedade-layer-list';
 
         if (containerId) {
@@ -1124,7 +1202,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function updateAllCategoryButtons() {
-        ['restauracao', 'floresta_pronta', 'floresta_mata_nativa', 'area_propriedade'].forEach(cat => updateCategoryButtonState(cat));
+        ['restauracao', 'floresta_pronta', 'area_propriedade'].forEach(cat => updateCategoryButtonState(cat));
     }
 
     // Interceptar clique nos botões de alternar categoria na fase de captura (capture phase)
@@ -1160,6 +1238,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     map.removeLayer(item.layer);
                 }
+
+                // Sincroniza camada incorporada (ex: floresta_pronta <-> floresta_mata_nativa)
+                if (item.linkedKey && projectLayers[item.linkedKey]) {
+                    const linked = projectLayers[item.linkedKey];
+                    linked.visible = isChecked;
+                    if (isChecked) {
+                        map.addLayer(linked.layer);
+                    } else {
+                        map.removeLayer(linked.layer);
+                    }
+                }
+
                 updateAllCategoryButtons();
                 updateFooterStats();
             }
@@ -1191,7 +1281,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const key = zoomBtn.dataset.key;
             const item = projectLayers[key];
             if (item && item.layer) {
-                const bounds = item.layer.getBounds();
+                let bounds = item.layer.getBounds();
+                if (item.linkedKey && projectLayers[item.linkedKey] && projectLayers[item.linkedKey].layer) {
+                    const b2 = projectLayers[item.linkedKey].layer.getBounds();
+                    if (b2.isValid()) {
+                        bounds = bounds.isValid() ? bounds.extend(b2) : b2;
+                    }
+                }
                 if (bounds.isValid()) {
                     map.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 });
                 }
@@ -1308,8 +1404,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (item && item.layer) {
                 item.opacity = val;
+
+                // Se houver camada vinculada (ex: vegetação de Banco de Áreas)
+                if (item.linkedKey && projectLayers[item.linkedKey]) {
+                    const linked = projectLayers[item.linkedKey];
+                    linked.opacity = val;
+                    if (linked.layer) {
+                        linked.layer.setStyle({ fillOpacity: val });
+                    }
+                }
+
                 if (item.categoria === 'area_propriedade') {
                     item.layer.setStyle({ opacity: Math.max(0.1, val), fillOpacity: 0 });
+                } else if (item.categoria === 'floresta_pronta') {
+                    item.layer.setStyle({ opacity: Math.max(0.2, val) });
                 } else {
                     item.layer.setStyle({ fillOpacity: val });
                 }

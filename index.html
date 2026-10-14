@@ -178,60 +178,24 @@
                     </div>
                 </div>
 
-                <!-- Section 2: Categoria Floresta Pronta (com sub-blocos para Limites de Propriedades e Mata Nativa) -->
+                <!-- Section 2: Banco de Áreas - Floresta Pronta (Limites de Propriedades incorporados com Vegetação) -->
                 <div class="accordion-section active" id="sec-floresta-pronta">
                     <div class="accordion-header">
                         <div class="accordion-title">
                             <i class="fa-solid fa-tree"></i>
-                            <span>Floresta Pronta</span>
+                            <span>Banco de Áreas - Floresta Pronta</span>
                         </div>
                         <div style="display: flex; align-items: center; gap: 8px;">
+                            <button type="button" class="btn-cat-toggle" data-category="floresta_pronta" onclick="event.stopPropagation();" title="Ativar / Desativar todas as propriedades de Banco de Áreas">
+                                <i class="fa-solid fa-check-double"></i>
+                            </button>
+                            <span class="accordion-badge" id="floresta-count" style="background-color: #15803d;">0</span>
                             <i class="fa-solid fa-chevron-down accordion-chevron"></i>
                         </div>
                     </div>
                     <div class="accordion-content">
-                        <!-- Sub-bloco 1: Mata Nativa / Vegetação Nativa -->
-                        <div class="sub-accordion-section active">
-                            <div class="sub-accordion-header">
-                                <div class="sub-accordion-title">
-                                    <i class="fa-solid fa-layer-group" style="color: #15803d;"></i>
-                                    <span>Mata Nativa</span>
-                                </div>
-                                <div style="display: flex; align-items: center; gap: 8px;">
-                                    <button type="button" class="btn-cat-toggle" data-category="floresta_mata_nativa" onclick="event.stopPropagation();" title="Ativar / Desativar todas as camadas de Mata Nativa">
-                                        <i class="fa-solid fa-check-double"></i>
-                                    </button>
-                                    <span class="accordion-badge" id="floresta-mata-count" style="background-color: #15803d;">0</span>
-                                    <i class="fa-solid fa-chevron-down accordion-chevron"></i>
-                                </div>
-                            </div>
-                            <div class="sub-accordion-content">
-                                <div class="layer-list" id="floresta-mata-layer-list">
-                                    <!-- Camadas de mata nativa injetadas dinamicamente via app.js -->
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Sub-bloco 2: Limites de Propriedades -->
-                        <div class="sub-accordion-section active" style="margin-top: 12px; border-top: 1px dashed var(--border-color); padding-top: 10px;">
-                            <div class="sub-accordion-header">
-                                <div class="sub-accordion-title">
-                                    <i class="fa-solid fa-landmark" style="color: #dc2626;"></i>
-                                    <span>Limites de Propriedades</span>
-                                </div>
-                                <div style="display: flex; align-items: center; gap: 8px;">
-                                    <button type="button" class="btn-cat-toggle" data-category="floresta_pronta" onclick="event.stopPropagation();" title="Ativar / Desativar todas as camadas de Limites de Propriedades">
-                                        <i class="fa-solid fa-check-double"></i>
-                                    </button>
-                                    <span class="accordion-badge" id="floresta-count" style="background-color: #dc2626;">0</span>
-                                    <i class="fa-solid fa-chevron-down accordion-chevron"></i>
-                                </div>
-                            </div>
-                            <div class="sub-accordion-content">
-                                <div class="layer-list" id="floresta-layer-list">
-                                    <!-- Camadas de limites de propriedade de floresta pronta injetadas dinamicamente via app.js -->
-                                </div>
-                            </div>
+                        <div class="layer-list" id="floresta-layer-list">
+                            <!-- Propriedades de Banco de Áreas (Limites de Propriedades + Vegetação) injetadas dinamicamente via app.js -->
                         </div>
                     </div>
                 </div>
@@ -248,10 +212,10 @@
                     </div>
                 </div>
                 <div style="width: 1px; height: 26px; background-color: var(--border-color);"></div>
-                <div class="stats-item" title="Área total de Floresta Pronta visível">
+                <div class="stats-item" title="Área total de Banco de Áreas - Floresta Pronta visível">
                     <i class="fa-solid fa-tree" style="color: #01a300; font-size: 0.95rem;"></i>
                     <div>
-                        <div style="font-size: 0.68rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em;">Floresta Pronta</div>
+                        <div style="font-size: 0.68rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em;">Banco de Áreas</div>
                         <strong id="floresta-area-display" style="color: var(--primary-color); font-size: 0.85rem; font-weight: 700;">0,00 ha</strong>
                     </div>
                 </div>
@@ -503,12 +467,12 @@
     <script src="https://unpkg.com/@turf/turf@6.5.0/turf.min.js"></script>
 
     <!-- Embedded GeoJSON Data Package -->
-    <script src="geojson_data.js?v=1791908185"></script>
+    <script src="geojson_data.js?v=1791999599"></script>
 
     <!-- Municipal Basins Data Package -->
     <script src="municipios_bacias_data.js?v=18"></script>
 
     <!-- Custom Application Logic -->
-    <script src="app.js?v=35"></script>
+    <script src="app.js?v=36"></script>
 </body>
 </html>
