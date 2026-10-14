@@ -933,6 +933,104 @@ body, html {
     background: var(--accent-color);
 }
 
+/* Seletor e Pesquisa de Municípios no Painel Outros Limites */
+.muni-search-box {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--border-color);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.muni-search-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.74rem;
+    font-weight: 700;
+    color: var(--primary-color);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.muni-search-label i {
+    font-size: 0.8rem;
+    color: var(--primary-color);
+}
+
+.muni-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+.muni-input-icon {
+    position: absolute;
+    left: 9px;
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    pointer-events: none;
+}
+
+.muni-search-input-right {
+    width: 100%;
+    padding: 6px 26px 6px 28px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-size: 0.78rem;
+    background: #ffffff;
+    color: var(--text-primary);
+    outline: none;
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.muni-search-input-right:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(27, 77, 62, 0.12);
+}
+
+.btn-clear-muni-right {
+    position: absolute;
+    right: 6px;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 3px;
+    font-size: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-clear-muni-right:hover {
+    color: var(--text-primary);
+}
+
+.btn-clear-muni-right.hidden {
+    display: none;
+}
+
+.muni-select {
+    width: 100%;
+    padding: 6px 8px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-size: 0.78rem;
+    background: #ffffff;
+    color: var(--text-primary);
+    outline: none;
+    cursor: pointer;
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.muni-select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(27, 77, 62, 0.12);
+}
+
 .layer-item {
     padding: 8px 10px;
     background: #ffffff;

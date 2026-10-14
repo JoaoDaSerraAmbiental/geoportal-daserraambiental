@@ -1220,6 +1220,133 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // ======================================================================
+    // Seletor e Pesquisa de Municípios (Painel Outros Limites)
+    // ======================================================================
+    function jumpToMunicipalityByName(muniName) {
+        if (!muniName) return;
+        const cleanTarget = muniName.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        const outrosItem = outrosLayers['municipios_SP'];
+        if (!outrosItem) return;
+
+        // Ativa a camada se estiver desmarcada
+        if (!outrosItem.visible && !map.hasLayer(outrosItem.layer)) {
+            map.addLayer(outrosItem.layer);
+            outrosItem.visible = true;
+            const chk = document.querySelector(`.outros-toggle[data-key="municipios_SP"]`);
+            if (chk) chk.checked = true;
+        }
+
+        let found = false;
+        if (outrosItem.layer) {
+            outrosItem.layer.eachLayer(l => {
+                if (found) return;
+                const nm = l.feature && l.feature.properties && l.feature.properties.NM_MUN;
+                if (!nm) return;
+                const cleanNm = String(nm).trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                if (cleanNm === cleanTarget) {
+                    found = true;
+                    const bounds = l.getBounds();
+                    if (bounds.isValid()) {
+                        map.fitBounds(bounds, { padding: [40, 40], maxZoom: 13.5 });
+                        // Destaca a borda temporariamente
+                        l.setStyle({ weight: 3.2, color: '#0284c7', fillOpacity: 0.18 });
+                        setTimeout(() => {
+                            if (outrosItem.layer) outrosItem.layer.resetStyle(l);
+                        }, 3500);
+                        setTimeout(() => {
+                            if (l.openPopup) {
+                                l.openPopup();
+                            } else if (l.openTooltip) {
+                                l.openTooltip();
+                            }
+                        }, 300);
+                    }
+                }
+            });
+        }
+    }
+
+    function initOutrosMunicipalitySelector() {
+        const muniSelect = document.getElementById('muni-select');
+        const muniDatalist = document.getElementById('muni-datalist-right');
+        const muniSearchInput = document.getElementById('muni-search-right');
+        const btnClear = document.getElementById('btn-clear-muni-right');
+
+        const outrosItem = outrosLayers['municipios_SP'];
+        if (!outrosItem || !outrosItem.data || !outrosItem.data.features) return;
+
+        const features = outrosItem.data.features;
+        const sortedMunis = features
+            .map(f => f.properties && f.properties.NM_MUN)
+            .filter(Boolean)
+            .sort((a, b) => a.localeCompare(b, 'pt-BR'));
+
+        if (muniSelect) {
+            muniSelect.innerHTML = '<option value="">-- Ou selecione na lista de municípios --</option>';
+            sortedMunis.forEach(muni => {
+                const opt = document.createElement('option');
+                opt.value = muni;
+                opt.textContent = muni;
+                muniSelect.appendChild(opt);
+            });
+            muniSelect.addEventListener('change', (e) => {
+                const val = e.target.value;
+                if (val) {
+                    if (muniSearchInput) {
+                        muniSearchInput.value = val;
+                        if (btnClear) btnClear.classList.remove('hidden');
+                    }
+                    jumpToMunicipalityByName(val);
+                }
+            });
+        }
+
+        if (muniDatalist) {
+            muniDatalist.innerHTML = '';
+            sortedMunis.forEach(muni => {
+                const opt = document.createElement('option');
+                opt.value = muni;
+                muniDatalist.appendChild(opt);
+            });
+        }
+
+        if (muniSearchInput) {
+            const handleSearch = () => {
+                const val = muniSearchInput.value.trim();
+                if (btnClear) btnClear.classList.toggle('hidden', val.length === 0);
+                if (!val) return;
+
+                const normVal = val.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                const match = sortedMunis.find(m => m.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '') === normVal);
+                if (match) {
+                    if (muniSelect) muniSelect.value = match;
+                    jumpToMunicipalityByName(match);
+                }
+            };
+
+            muniSearchInput.addEventListener('input', handleSearch);
+            muniSearchInput.addEventListener('change', handleSearch);
+            muniSearchInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleSearch();
+                }
+            });
+        }
+
+        if (btnClear && muniSearchInput) {
+            btnClear.addEventListener('click', (e) => {
+                e.stopPropagation();
+                muniSearchInput.value = '';
+                if (muniSelect) muniSelect.value = '';
+                btnClear.classList.add('hidden');
+            });
+        }
+    }
+
+    initOutrosMunicipalitySelector();
+
     // Opacity Slider Input (delegado no sidebar-body)
     document.querySelector('.sidebar-body').addEventListener('input', (e) => {
         if (e.target.classList.contains('opacity-slider')) {
