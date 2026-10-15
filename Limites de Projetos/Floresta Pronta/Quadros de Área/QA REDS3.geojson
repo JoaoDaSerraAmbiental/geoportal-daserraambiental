@@ -1,0 +1,11 @@
+{
+"type": "FeatureCollection",
+"name": "QA REDS3",
+"features": [
+{"type":"Feature","properties":{"Tema":"Propriedade","Área (ha)":120.95,"%":100.0},"geometry":null},
+{"type":"Feature","properties":{"Tema":"Reserva Legal","Área (ha)":24.19,"%":20.0},"geometry":null},
+{"type":"Feature","properties":{"Tema":"Vegetação Nativa","Área (ha)":118.2,"%":97.73},"geometry":null},
+{"type":"Feature","properties":{"Tema":"Vegetação Remanescente","Área (ha)":94.01,"%":77.73},"geometry":null},
+{"type":"Feature","properties":{"Tema":"Área Disponível","Área (ha)":74.73,"%":61.49},"geometry":null}
+]
+}

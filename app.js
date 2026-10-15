@@ -149,6 +149,7 @@ document.addEventListener('DOMContentLoaded', () => {
         "floresta_pronta__Sítio José Eduardo": "Sítio José Eduardo",
         "floresta_pronta__Sitio Marilia": "Sítio Marília",
         "floresta_pronta__Sitio Sao Benedito": "Sítio São Benedito",
+        "floresta_pronta__REDS3": "REDS 3",
         "floresta_mata_nativa__Faz. Aguas do Cedro": "Faz. Águas do Cedro",
         "floresta_mata_nativa__Faz. Bela Vista": "Faz. Bela Vista",
         "floresta_mata_nativa__Faz. Guaiuvira": "Faz. Guaiuvira",
@@ -164,6 +165,7 @@ document.addEventListener('DOMContentLoaded', () => {
         "floresta_mata_nativa__Sítio José Eduardo": "Sítio José Eduardo",
         "floresta_mata_nativa__Sitio Marilia": "Sítio Marília",
         "floresta_mata_nativa__Sitio Sao Benedito": "Sítio São Benedito",
+        "floresta_mata_nativa__REDS3": "REDS 3",
 
         // Restauração
         "restauracao__Acacio_ind_2015": "Acácio - Ind. (2015)",
@@ -1040,12 +1042,17 @@ document.addEventListener('DOMContentLoaded', () => {
                         const qa = (propLayer.data && propLayer.data.quadro_area) || propLayer.quadro_area;
 
                         if (qa && Array.isArray(qa)) {
+                            const dispRow = qa.find(row => {
+                                const tema = String(row.Tema || row.tema || row.TEMA || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                                return tema.includes('disponivel');
+                            });
                             const excRow = qa.find(row => {
                                 const tema = String(row.Tema || row.tema || row.TEMA || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-                                return tema.includes('excedente');
+                                return tema.includes('excedente') || tema.includes('remanescente');
                             });
-                            if (excRow) {
-                                const val = excRow['Área (ha)'] || excRow['area (ha)'] || excRow['Area (ha)'] || excRow['Área'] || excRow['area'] || 0;
+                            const targetRow = dispRow || excRow;
+                            if (targetRow) {
+                                const val = targetRow['Área (ha)'] || targetRow['area (ha)'] || targetRow['Area (ha)'] || targetRow['Área'] || targetRow['area'] || 0;
                                 const numVal = typeof val === 'number' ? val : (parseFloat(String(val).replace(',', '.')) || 0);
                                 if (!isNaN(numVal)) florestaHa += numVal;
                             }
@@ -2248,7 +2255,9 @@ document.addEventListener('DOMContentLoaded', () => {
             'area disponivel': 'Área Disponível',
             'área disponível': 'Área Disponível',
             'vegetacao excedente': 'Vegetação Excedente',
-            'vegetação excedente': 'Vegetação Excedente'
+            'vegetação excedente': 'Vegetação Excedente',
+            'vegetacao remanescente': 'Vegetação Remanescente',
+            'vegetação remanescente': 'Vegetação Remanescente'
         };
 
         const normK = clean.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
@@ -2316,7 +2325,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 </thead>
                 <tbody>`;
 
-            // Detecta se já existe linha de Área Disponível e obtém o valor da Vegetação Excedente base
+            // Detecta se já existe linha de Área Disponível e obtém o valor da Vegetação Excedente / Remanescente base
             let excedenteAreaHa = null;
             let hasDisponivelRow = false;
 
@@ -2326,7 +2335,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (normTema.includes('disponivel')) {
                     hasDisponivelRow = true;
                 }
-                if (normTema.includes('excedente')) {
+                if (normTema.includes('excedente') || normTema.includes('remanescente')) {
                     const rawVal = row['Área (ha)'] || row['area (ha)'] || row['Area (ha)'] || row['Área'] || row['area'] || 0;
                     const parsed = typeof rawVal === 'number' ? rawVal : parseFloat(String(rawVal).replace(',', '.'));
                     if (!isNaN(parsed)) {
@@ -2347,7 +2356,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const areaNum = typeof area === 'number' ? area : (parseFloat(String(area).replace(',', '.')) || 0);
                 let percNum = typeof perc === 'number' ? perc : (parseFloat(String(perc).replace(',', '.')) || 0);
 
-                if (isDisponivel && excedenteAreaHa && excedenteAreaHa > 0 && (row['%'] === undefined || row['%_excedente'])) {
+                if (isDisponivel && excedenteAreaHa && excedenteAreaHa > 0) {
                     percNum = (areaNum / excedenteAreaHa) * 100;
                 }
 
@@ -2355,7 +2364,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <tr class="${isTotal ? 'qa-row-total' : (isDisponivel ? 'qa-row-disponivel' : '')}">
                         <td><strong>${isDisponivel ? '<i class="fa-solid fa-circle-check" style="margin-right: 5px; color: #16a34a; font-size: 0.72rem;"></i>' : ''}${formatAttributeKey(tema)}</strong></td>
                         <td style="text-align: right; font-weight: 600;">${areaNum.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})} ha</td>
-                        <td style="text-align: right; font-weight: 600;" ${isDisponivel ? 'title="% calculada sobre a Vegetação Excedente"' : ''}>${percNum.toLocaleString('pt-BR', {minimumFractionDigits: 1, maximumFractionDigits: 2})}%${isDisponivel ? '*' : ''}</td>
+                        <td style="text-align: right; font-weight: 600;" ${isDisponivel ? 'title="% calculada sobre a Vegetação Excedente / Remanescente"' : ''}>${percNum.toLocaleString('pt-BR', {minimumFractionDigits: 1, maximumFractionDigits: 2})}%${isDisponivel ? '*' : ''}</td>
                     </tr>
                 `;
             });
@@ -2381,7 +2390,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <tr class="qa-row-disponivel">
                         <td><strong style="color: #15803d;"><i class="fa-solid fa-circle-check" style="margin-right: 5px; color: #16a34a; font-size: 0.72rem;"></i>Área Disponível</strong></td>
                         <td style="text-align: right; font-weight: 700; color: #15803d;">${areaDisp.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})} ha</td>
-                        <td style="text-align: right; font-weight: 700; color: #15803d;" title="% em relação à Vegetação Excedente">${percDisp.toLocaleString('pt-BR', {minimumFractionDigits: 1, maximumFractionDigits: 2})}%*</td>
+                        <td style="text-align: right; font-weight: 700; color: #15803d;" title="% em relação à Vegetação Excedente / Remanescente">${percDisp.toLocaleString('pt-BR', {minimumFractionDigits: 1, maximumFractionDigits: 2})}%*</td>
                     </tr>
                 `;
             }
@@ -2389,7 +2398,7 @@ document.addEventListener('DOMContentLoaded', () => {
             content += `</tbody></table>`;
 
             if (hasDisponivelNote) {
-                content += `<div style="font-size: 0.68rem; color: #166534; margin-top: -3px; margin-bottom: 8px; text-align: right; font-style: italic;">* % calculada com base na Vegetação Excedente</div>`;
+                content += `<div style="font-size: 0.68rem; color: #166534; margin-top: -3px; margin-bottom: 8px; text-align: right; font-style: italic;">* % calculada com base na Vegetação Excedente / Remanescente</div>`;
             }
         }
 

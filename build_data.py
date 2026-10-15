@@ -25,7 +25,7 @@ def get_category_key(folder_name):
         if "mata" in norm or "nativa" in norm or "vegetac" in norm:
             return "floresta_mata_nativa"
         return "floresta_pronta"
-    elif "propriedad" in norm or "area" in norm:
+    elif "propriedad" in norm:
         return "area_propriedade"
     else:
         return "restauracao"
@@ -86,9 +86,9 @@ def build_dataset():
                             norm_raw = normalize_text(raw_key)
                             matched_qa = qa_data_map.get(norm_raw)
                             if not matched_qa:
-                                clean_raw = norm_raw.replace('faz. ', '').replace('fazenda ', '').replace('sitio ', '').strip()
+                                clean_raw = norm_raw.replace('faz. ', '').replace('fazenda ', '').replace('sitio ', '').replace(' ', '').strip()
                                 for qk, qrows in qa_data_map.items():
-                                    clean_qk = qk.replace('faz. ', '').replace('fazenda ', '').replace('sitio ', '').strip()
+                                    clean_qk = qk.replace('faz. ', '').replace('fazenda ', '').replace('sitio ', '').replace(' ', '').strip()
                                     if clean_raw == clean_qk:
                                         matched_qa = qrows
                                         break
