@@ -497,13 +497,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let label = '';
         if (itemCode && processo) {
-            label = `SARE ${itemCode} • ${processo}`;
+            label = `${itemCode} • ${processo}`;
         } else if (processo) {
             label = String(processo);
         } else if (itemCode) {
-            label = `SARE ${itemCode}`;
+            label = String(itemCode);
         } else {
-            label = `${fallbackName || 'SARE'} #${idx + 1}`;
+            label = `${idx + 1}`;
         }
 
         let rawArea = props.Area_Calc ?? props.area_calc ?? props.Area_Decl ?? props.area_decl ?? props['Área (ha)'] ?? props['Area (ha)'] ?? props.area_ha ?? props.AREA_HA ?? props.Area ?? props.area;
@@ -1091,7 +1091,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 const avHaStr = totalAvHaNum > 0
                     ? totalAvHaNum.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
                     : '';
-                averbadaSubtitleHtml = ` <span style="color: #1d4ed8; font-weight: 600;" title="Clique na seta ao lado para abrir e controlar os ${allSares.length} SAREs individualmente">• ${allSares.length} SAREs${avHaStr ? ` (${avHaStr} ha)` : ''}</span>`;
+                const glebaWord = allSares.length === 1 ? 'Gleba' : 'Glebas';
+                averbadaSubtitleHtml = ` <span style="color: #1d4ed8; font-weight: 600;" title="Clique na seta ao lado para abrir e controlar as ${allSares.length} ${glebaWord.toLowerCase()} individualmente">• ${allSares.length} ${glebaWord}${avHaStr ? ` (${avHaStr} ha)` : ''}</span>`;
             }
 
             const propAreaStr = item.areaHa
@@ -1133,7 +1134,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <div class="sublayer-meta" title="${s.subtitle}">${s.subtitle}</div>
                             </div>
                         </div>
-                        <button type="button" class="btn-icon btn-sublayer-zoom" data-zoom-type="sare" data-prop-key="${key}" data-av-key="${s.avKey}" data-sare-idx="${s.idx}" title="Aproximar zoom e ver detalhes deste SARE">
+                        <button type="button" class="btn-icon btn-sublayer-zoom" data-zoom-type="sare" data-prop-key="${key}" data-av-key="${s.avKey}" data-sare-idx="${s.idx}" title="Aproximar zoom e ver detalhes desta gleba">
                             <i class="fa-solid fa-crosshairs"></i>
                         </button>
                     </div>
@@ -1142,8 +1143,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 saresBlockHtml = `
                     <div class="sublayer-group-header">
                         <div class="sublayer-group-left">
-                            <input type="checkbox" class="sublayer-checkbox sublayer-toggle-all-sares" data-prop-key="${key}" checked title="Ativar / desativar todos os SAREs deste projeto">
-                            <span>SAREs / Áreas do Projeto</span>
+                            <input type="checkbox" class="sublayer-checkbox sublayer-toggle-all-sares" data-prop-key="${key}" checked title="Ativar / desativar todas as áreas deste projeto">
+                            <span>Áreas do Projeto</span>
                         </div>
                         <span class="sublayer-group-badge">${allSares.length}</span>
                     </div>
@@ -1156,11 +1157,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="sublayer-group-header" style="background: #f1f5f9; border-color: #e2e8f0;">
                         <div class="sublayer-group-left" style="color: #64748b;">
                             <i class="fa-solid fa-layer-group" style="font-size: 0.7rem;"></i>
-                            <span>SAREs / Áreas do Projeto</span>
+                            <span>Áreas do Projeto</span>
                         </div>
                         <span class="sublayer-group-badge" style="background: #94a3b8;">0</span>
                     </div>
-                    <div class="sublayer-empty">Nenhum SARE / área interna cadastrada neste projeto</div>
+                    <div class="sublayer-empty">Nenhuma área interna cadastrada neste projeto</div>
                 `;
             }
 
@@ -1206,7 +1207,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <i class="fa-solid fa-sliders"></i>
                     </button>
                     ${isFlorestaPronta ? `
-                    <button type="button" class="btn-icon btn-toggle-sublayers" data-key="${key}" title="Abrir lista de áreas e SAREs deste projeto">
+                    <button type="button" class="btn-icon btn-toggle-sublayers" data-key="${key}" title="Abrir lista de áreas deste projeto">
                         <i class="fa-solid fa-chevron-down"></i>
                     </button>
                     ` : ''}
