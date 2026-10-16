@@ -60,6 +60,10 @@ document.addEventListener('DOMContentLoaded', () => {
     map.getPane('propriedadePane').style.zIndex = 390;
     map.getPane('propriedadePane').style.pointerEvents = 'auto';
 
+    map.createPane('averbadaPane');
+    map.getPane('averbadaPane').style.zIndex = 395;
+    map.getPane('averbadaPane').style.pointerEvents = 'auto';
+
     map.createPane('projetosPane');
     map.getPane('projetosPane').style.zIndex = 410;
     map.getPane('projetosPane').style.pointerEvents = 'auto';
@@ -150,6 +154,7 @@ document.addEventListener('DOMContentLoaded', () => {
         "floresta_pronta__Sitio Marilia": "Sítio Marília",
         "floresta_pronta__Sitio Sao Benedito": "Sítio São Benedito",
         "floresta_pronta__REDS3": "REDS 3",
+        "floresta_pronta__REDS 4": "REDS 4",
         "floresta_mata_nativa__Faz. Aguas do Cedro": "Faz. Águas do Cedro",
         "floresta_mata_nativa__Faz. Bela Vista": "Faz. Bela Vista",
         "floresta_mata_nativa__Faz. Guaiuvira": "Faz. Guaiuvira",
@@ -166,6 +171,7 @@ document.addEventListener('DOMContentLoaded', () => {
         "floresta_mata_nativa__Sitio Marilia": "Sítio Marília",
         "floresta_mata_nativa__Sitio Sao Benedito": "Sítio São Benedito",
         "floresta_mata_nativa__REDS3": "REDS 3",
+        "floresta_mata_nativa__REDS3 - Áreas Averbadas": "REDS 3 - Áreas Averbadas",
 
         // Restauração
         "restauracao__Acacio_ind_2015": "Acácio - Ind. (2015)",
@@ -450,9 +456,13 @@ document.addEventListener('DOMContentLoaded', () => {
         return defaultColor;
     }
 
-    function getFeatureStyle(feature, defaultColor, opacity = 0.45, category = '') {
+    function isAverbadaLayer(k) {
+        return String(k || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes('averbad');
+    }
+
+    function getFeatureStyle(feature, defaultColor, opacity = 0.45, category = '', isAverbada = false) {
         const isPropriedade = (category === 'area_propriedade' || category === 'floresta_pronta');
-        const c = isPropriedade ? defaultColor : getFeatureColor(feature, defaultColor);
+        const c = (isPropriedade || isAverbada) ? defaultColor : getFeatureColor(feature, defaultColor);
 
         if (isPropriedade) {
             return {
@@ -461,6 +471,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 opacity: 0.95,
                 fillColor: 'transparent',
                 fillOpacity: 0
+            };
+        }
+        if (isAverbada) {
+            return {
+                color: '#b45309',
+                weight: 1.6,
+                opacity: 0.95,
+                dashArray: '5, 3',
+                fillColor: c,
+                fillOpacity: opacity !== undefined ? opacity : 0.52
             };
         }
         if (category === 'floresta_mata_nativa') {
@@ -484,7 +504,8 @@ document.addEventListener('DOMContentLoaded', () => {
     sortedProjectKeys.forEach((key) => {
         const data = geoData.projetos[key];
         const cat  = projectCategory[key] || 'restauracao';
-        const color = categoryColor[cat] || '#15803d';
+        const isAverbada = isAverbadaLayer(key);
+        const color = isAverbada ? '#f59e0b' : (categoryColor[cat] || '#15803d');
 
         const projName = formatProjectName(key);
         const featureCount = data.features ? data.features.length : 0;
@@ -495,12 +516,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let paneName = 'projetosPane';
         if (isPropriedade) paneName = 'propriedadePane';
+        else if (isAverbada) paneName = 'averbadaPane';
         else if (isMataNativa) paneName = 'vegetacaoPane';
 
         const geoLayerOptions = {
             pane: paneName,
             interactive: true,
-            style: (feature) => getFeatureStyle(feature, color, isPropriedade ? 0 : (isMataNativa ? 0.55 : 0.45), cat)
+            style: (feature) => getFeatureStyle(feature, color, isPropriedade ? 0 : (isMataNativa ? 0.55 : 0.45), cat, isAverbada)
         };
 
         geoLayerOptions.onEachFeature = (feature, layer) => {
@@ -511,6 +533,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     const l = e.target;
                     if (isPropriedade) {
                         l.setStyle({ weight: 3.2, fillOpacity: 0 });
+                    } else if (isAverbada) {
+                        l.setStyle({ weight: 2.6, color: '#92400e', fillOpacity: 0.72 });
                     } else if (isMataNativa) {
                         l.setStyle({ weight: 1.8, fillOpacity: 0.75 });
                     } else {
@@ -524,7 +548,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (window.MeasureTool && window.MeasureTool.isActive && !window.MeasureTool.isFinished) return;
                     const l = e.target;
                     const currentOpacity = (projectLayers[key] && projectLayers[key].opacity !== undefined) ? projectLayers[key].opacity : (isMataNativa ? 0.55 : 0.45);
-                    l.setStyle(getFeatureStyle(l.feature || feature, color, currentOpacity, cat));
+                    l.setStyle(getFeatureStyle(l.feature || feature, color, currentOpacity, cat, isAverbada));
                 },
                 click: (e) => {
                     if (window.MeasureTool && window.MeasureTool.isActive && !window.MeasureTool.isFinished) {
@@ -537,7 +561,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Attach Popup (busca Quadro de Áreas diretamente ou da propriedade vinculada)
             layer.bindPopup(() => {
                 const qa = data.quadro_area || (feature.properties ? feature.properties._quadro_area : null) || resolveQuadroAreaForProject(key);
-                return createPopupContent(feature.properties, projName, getFeatureColor(feature, color), qa);
+                return createPopupContent(feature.properties, projName, isAverbada ? '#d97706' : getFeatureColor(feature, color), qa);
             });
         };
 
@@ -563,6 +587,7 @@ document.addEventListener('DOMContentLoaded', () => {
             name: projName,
             color: color,
             categoria: cat,
+            isAverbada: isAverbada,
             data: data,
             layer: geoLayer,
             featureCount: featureCount,
@@ -582,7 +607,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const targetNorm = norm(k);
         for (const [pk, d] of Object.entries(geoData.projetos)) {
             if (pk.startsWith('floresta_pronta__') && d.quadro_area) {
-                if (norm(pk) === targetNorm) {
+                const pNorm = norm(pk);
+                if (pNorm === targetNorm || targetNorm.startsWith(pNorm + ' ') || targetNorm.startsWith(pNorm + '-')) {
                     return d.quadro_area;
                 }
             }
@@ -590,32 +616,40 @@ document.addEventListener('DOMContentLoaded', () => {
         return null;
     }
 
-    // Function to find matching Floresta Mata Nativa key
-    function findMatchingFlorestaMataKey(propKey) {
+    // Function to find all matching Floresta Mata Nativa keys (including sub-layers like Áreas Averbadas)
+    function findMatchingFlorestaMataKeys(propKey) {
         const rawName = propKey.replace(/^floresta_pronta__/, '').trim();
-        const candidate = `floresta_mata_nativa__${rawName}`;
-        if (projectLayers[candidate]) return candidate;
-
         const norm = (s) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/^(floresta_pronta|floresta_mata_nativa)__/, '').replace(/^faz\.\s*/, '').replace(/^fazenda\s*/, '').replace(/^sitio\s*/, '').trim();
         const targetNorm = norm(rawName);
+        const matches = [];
+
+        const candidate = `floresta_mata_nativa__${rawName}`;
+        if (projectLayers[candidate]) matches.push(candidate);
 
         for (const k of Object.keys(projectLayers)) {
-            if (k.startsWith('floresta_mata_nativa__')) {
-                if (norm(k) === targetNorm) return k;
+            if (k.startsWith('floresta_mata_nativa__') && !matches.includes(k)) {
+                const kNorm = norm(k);
+                if (kNorm === targetNorm || kNorm.startsWith(targetNorm + ' ') || kNorm.startsWith(targetNorm + '-')) {
+                    matches.push(k);
+                }
             }
         }
-        return null;
+        return matches;
     }
 
-    // Link Floresta Pronta (Limites de Propriedades) and Floresta Mata Nativa (Vegetação)
+    // Link Floresta Pronta (Limites de Propriedades) and Floresta Mata Nativa (Vegetação + Áreas Averbadas)
     Object.keys(projectLayers).forEach((key) => {
         if (key.startsWith('floresta_pronta__')) {
             const propItem = projectLayers[key];
-            const mataKey = findMatchingFlorestaMataKey(key);
-            if (mataKey && projectLayers[mataKey]) {
-                const mataItem = projectLayers[mataKey];
-                propItem.linkedKey = mataKey;
-                mataItem.linkedKey = key;
+            const mataKeys = findMatchingFlorestaMataKeys(key);
+            if (mataKeys.length > 0) {
+                propItem.linkedKeys = mataKeys;
+                propItem.linkedKey = mataKeys[0];
+                mataKeys.forEach(mKey => {
+                    if (projectLayers[mKey]) {
+                        projectLayers[mKey].linkedKey = key;
+                    }
+                });
             }
         }
     });
@@ -903,12 +937,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const defaultSliderVal = isPropriedade ? 95 : (isFlorestaPronta ? 55 : 45);
 
-        // Subtítulo com a área
+        // Subtítulo com a área (e indicação de áreas averbadas se houver)
         let areaVal = item.areaHa;
+        let averbadaSubtitleHtml = '';
         if (isFlorestaPronta) {
-            const linked = item.linkedKey ? projectLayers[item.linkedKey] : null;
+            const linkedKeys = item.linkedKeys || (item.linkedKey ? [item.linkedKey] : []);
+            const primaryMataKey = linkedKeys.find(lk => projectLayers[lk] && !projectLayers[lk].isAverbada) || item.linkedKey;
+            const linked = primaryMataKey ? projectLayers[primaryMataKey] : null;
             if (linked && linked.areaHa) {
                 areaVal = linked.areaHa;
+            }
+            const averbadaKey = linkedKeys.find(lk => projectLayers[lk] && projectLayers[lk].isAverbada);
+            if (averbadaKey && projectLayers[averbadaKey]) {
+                const avItem = projectLayers[averbadaKey];
+                const avHa = avItem.areaHa || '43.83';
+                averbadaSubtitleHtml = ` <span style="color: #d97706; font-weight: 600;" title="Áreas já averbadas (RL Compensação)">• <span style="display:inline-block;width:7px;height:7px;border-radius:2px;background:#f59e0b;border:1px dashed #b45309;vertical-align:middle;margin-right:2px;"></span>${avHa} ha averbados</span>`;
             }
         }
 
@@ -919,7 +962,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="color-badge" style="${badgeStyle}"></div>
                     <div>
                         <div class="layer-name" title="${item.name}">${item.name}</div>
-                        ${areaVal ? `<div class="layer-subtitle">${areaVal} ha</div>` : ''}
+                        ${areaVal ? `<div class="layer-subtitle">${areaVal} ha${averbadaSubtitleHtml}</div>` : ''}
                     </div>
                 </div>
                 <div class="layer-actions">
@@ -1032,6 +1075,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (!isNaN(area)) restauracaoHa += area;
                     }
                 } else if (p.categoria === 'floresta_pronta' || p.categoria === 'floresta_mata_nativa') {
+                    if (p.isAverbada) return;
                     const cleanName = p.key.replace(/^(floresta_pronta|floresta_mata_nativa)__/, '').trim();
                     if (!processedFlorestaProps.has(cleanName)) {
                         processedFlorestaProps.add(cleanName);
@@ -1160,16 +1204,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            // Sincroniza camada vinculada (ex: vegetação incorporada em Banco de Áreas)
-            if (item.linkedKey && projectLayers[item.linkedKey]) {
-                const linked = projectLayers[item.linkedKey];
-                linked.visible = targetState;
-                if (targetState) {
-                    if (!map.hasLayer(linked.layer)) map.addLayer(linked.layer);
-                } else {
-                    if (map.hasLayer(linked.layer)) map.removeLayer(linked.layer);
+            // Sincroniza camadas vinculadas (ex: vegetação e áreas averbadas incorporadas em Banco de Áreas)
+            const linkedKeys = item.linkedKeys || (item.linkedKey ? [item.linkedKey] : []);
+            linkedKeys.forEach(lk => {
+                const linked = projectLayers[lk];
+                if (linked) {
+                    linked.visible = targetState;
+                    if (targetState) {
+                        if (!map.hasLayer(linked.layer)) map.addLayer(linked.layer);
+                    } else {
+                        if (map.hasLayer(linked.layer)) map.removeLayer(linked.layer);
+                    }
                 }
-            }
+            });
         });
 
         // Atualizar checkboxes DOM correspondentes
@@ -1246,16 +1293,19 @@ document.addEventListener('DOMContentLoaded', () => {
                     map.removeLayer(item.layer);
                 }
 
-                // Sincroniza camada incorporada (ex: floresta_pronta <-> floresta_mata_nativa)
-                if (item.linkedKey && projectLayers[item.linkedKey]) {
-                    const linked = projectLayers[item.linkedKey];
-                    linked.visible = isChecked;
-                    if (isChecked) {
-                        map.addLayer(linked.layer);
-                    } else {
-                        map.removeLayer(linked.layer);
+                // Sincroniza camadas incorporadas (ex: floresta_pronta <-> floresta_mata_nativa + averbadas)
+                const linkedKeys = item.linkedKeys || (item.linkedKey ? [item.linkedKey] : []);
+                linkedKeys.forEach(lk => {
+                    const linked = projectLayers[lk];
+                    if (linked) {
+                        linked.visible = isChecked;
+                        if (isChecked) {
+                            map.addLayer(linked.layer);
+                        } else {
+                            map.removeLayer(linked.layer);
+                        }
                     }
-                }
+                });
 
                 updateAllCategoryButtons();
                 updateFooterStats();
@@ -1289,12 +1339,15 @@ document.addEventListener('DOMContentLoaded', () => {
             const item = projectLayers[key];
             if (item && item.layer) {
                 let bounds = item.layer.getBounds();
-                if (item.linkedKey && projectLayers[item.linkedKey] && projectLayers[item.linkedKey].layer) {
-                    const b2 = projectLayers[item.linkedKey].layer.getBounds();
-                    if (b2.isValid()) {
-                        bounds = bounds.isValid() ? bounds.extend(b2) : b2;
+                const linkedKeys = item.linkedKeys || (item.linkedKey ? [item.linkedKey] : []);
+                linkedKeys.forEach(lk => {
+                    if (projectLayers[lk] && projectLayers[lk].layer) {
+                        const b2 = projectLayers[lk].layer.getBounds();
+                        if (b2.isValid()) {
+                            bounds = bounds.isValid() ? bounds.extend(b2) : b2;
+                        }
                     }
-                }
+                });
                 if (bounds.isValid()) {
                     map.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 });
                 }
@@ -1412,14 +1465,17 @@ document.addEventListener('DOMContentLoaded', () => {
             if (item && item.layer) {
                 item.opacity = val;
 
-                // Se houver camada vinculada (ex: vegetação de Banco de Áreas)
-                if (item.linkedKey && projectLayers[item.linkedKey]) {
-                    const linked = projectLayers[item.linkedKey];
-                    linked.opacity = val;
-                    if (linked.layer) {
-                        linked.layer.setStyle({ fillOpacity: val });
+                // Se houver camadas vinculadas (ex: vegetação e áreas averbadas de Banco de Áreas)
+                const linkedKeys = item.linkedKeys || (item.linkedKey ? [item.linkedKey] : []);
+                linkedKeys.forEach(lk => {
+                    const linked = projectLayers[lk];
+                    if (linked) {
+                        linked.opacity = val;
+                        if (linked.layer) {
+                            linked.layer.setStyle({ fillOpacity: val });
+                        }
                     }
-                }
+                });
 
                 if (item.categoria === 'area_propriedade') {
                     item.layer.setStyle({ opacity: Math.max(0.1, val), fillOpacity: 0 });
@@ -1559,14 +1615,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const item = projectLayers[key];
             if (!item) return;
             const cat = item.categoria || projectCategory[key] || 'restauracao';
-            const isPropriedade = (cat === 'area_propriedade');
+            const isPropriedade = (cat === 'area_propriedade' || cat === 'floresta_pronta');
 
             if (item.layer) {
                 const currentOpacity = (item.opacity !== undefined) ? item.opacity : (isPropriedade ? 0 : 0.45);
-                item.layer.setStyle((feat) => getFeatureStyle(feat, item.color, currentOpacity, cat));
+                item.layer.setStyle((feat) => getFeatureStyle(feat, item.color, currentOpacity, cat, Boolean(item.isAverbada)));
             }
 
-            // Atualiza também o badge de cor na lista da barra lateral
+            // Atualiza também o badge de cor na lista da barra lateral (apenas para Restauração)
             const layerEl = document.querySelector(`.layer-item[data-key="${key}"]`);
             if (layerEl && !isPropriedade) {
                 const badgeEl = layerEl.querySelector('.color-badge');
@@ -1760,8 +1816,8 @@ document.addEventListener('DOMContentLoaded', () => {
         Object.keys(projectLayers).forEach(key => {
             const item = projectLayers[key];
             // Na aba de municípios, exibir apenas projetos reais (Restauração e Floresta Pronta - Matas Nativas).
-            // Limites de propriedade (tanto area_propriedade quanto os limites floresta_pronta) são estritamente excluídos.
-            if (!item || item.categoria === 'area_propriedade' || item.categoria === 'floresta_pronta') return;
+            // Limites de propriedade e subcamadas averbadas não são duplicados como projetos separados.
+            if (!item || item.categoria === 'area_propriedade' || item.categoria === 'floresta_pronta' || item.isAverbada) return;
 
             const muni = extractProjectMunicipality(item);
             if (!muni) return;
@@ -1851,12 +1907,28 @@ document.addEventListener('DOMContentLoaded', () => {
         const item = projectLayers[key];
         if (!item || !item.layer) return;
 
-        // Se a camada estiver desmarcada, ativá-la
+        // Se a camada estiver desmarcada, ativá-la (e também a propriedade vinculada / subcamadas)
         if (!item.visible) {
             item.layer.addTo(map);
             item.visible = true;
             const chk = document.querySelector(`.layer-toggle[data-key="${key}"]`);
             if (chk) chk.checked = true;
+
+            if (item.linkedKey && projectLayers[item.linkedKey]) {
+                const parentProp = projectLayers[item.linkedKey];
+                parentProp.visible = true;
+                if (!map.hasLayer(parentProp.layer)) parentProp.layer.addTo(map);
+                const pChk = document.querySelector(`.layer-toggle[data-key="${item.linkedKey}"]`);
+                if (pChk) pChk.checked = true;
+                const siblingKeys = parentProp.linkedKeys || [];
+                siblingKeys.forEach(sk => {
+                    if (projectLayers[sk]) {
+                        projectLayers[sk].visible = true;
+                        if (!map.hasLayer(projectLayers[sk].layer)) projectLayers[sk].layer.addTo(map);
+                    }
+                });
+            }
+
             updateAllCategoryButtons();
             updateFooterStats();
         }
@@ -2257,7 +2329,15 @@ document.addEventListener('DOMContentLoaded', () => {
             'vegetacao excedente': 'Vegetação Excedente',
             'vegetação excedente': 'Vegetação Excedente',
             'vegetacao remanescente': 'Vegetação Remanescente',
-            'vegetação remanescente': 'Vegetação Remanescente'
+            'vegetação remanescente': 'Vegetação Remanescente',
+            'imovel': 'Imóvel',
+            'imóvel': 'Imóvel',
+            'item': 'Item / Gleba',
+            'processo': 'Processo CETESB',
+            'area_decl': 'Área Declarada (ha)',
+            'perim_decl': 'Perímetro Declarado (m)',
+            'area_calc': 'Área Calculada (ha)',
+            'soma (ha)': 'Soma Averbada (ha)'
         };
 
         const normK = clean.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
@@ -2270,12 +2350,18 @@ document.addEventListener('DOMContentLoaded', () => {
         if (val === null || val === undefined || val === '') {
             return '<span style="color: #94a3b8;">-</span>';
         }
+        const normK = (key || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
         if (typeof val === 'number') {
+            if (normK === 'area_calc' || normK === 'area_decl' || normK.includes('soma') || normK === 'area' || normK === 'area (ha)') {
+                return `${val.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ha`;
+            }
+            if (normK === 'perim_decl') {
+                return `${val.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} m`;
+            }
             return val.toLocaleString('pt-BR', { maximumFractionDigits: 4 });
         }
         let str = String(val).trim();
 
-        const normK = (key || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
         if (normK.includes('nome')) {
             return projName || formatProjectDisplayName(str);
         }
@@ -2310,6 +2396,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Check for attached Quadro de Áreas
         const qaData = quadroArea || (props ? props._quadro_area : null);
+        const isAverbadaFeat = Boolean(props && (props.Processo || props.processo || String(props.Tipo || '').toLowerCase().includes('compensa')));
+
+        // Se for uma gleba averbada (ex: REDS3 - Áreas Averbadas), exibe os dados do processo/averbação em destaque
+        if (isAverbadaFeat) {
+            const entries = Object.entries(props || {}).filter(([k]) => k !== '_quadro_area');
+            if (entries.length > 0) {
+                content += `<div class="popup-subtitle-info" style="margin-top: 10px; color: #b45309; font-weight: 700; display: flex; align-items: center; gap: 6px;">
+                    <i class="fa-solid fa-file-shield" style="color: #d97706;"></i> Dados da Área Averbada
+                </div>`;
+                content += `<table class="popup-attribute-table"><tbody>`;
+                for (const [key, val] of entries) {
+                    content += `
+                        <tr>
+                            <th>${formatAttributeKey(key)}</th>
+                            <td>${formatAttributeValue(val, key, projName)}</td>
+                        </tr>
+                    `;
+                }
+                content += `</tbody></table>`;
+            }
+        }
 
         if (qaData && Array.isArray(qaData) && qaData.length > 0) {
             content += `<div class="popup-subtitle-info" style="margin-top: 10px; color: var(--primary-color); font-weight: 700; display: flex; align-items: center; gap: 6px;">
@@ -2403,7 +2510,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Tabela de atributos convencionais (exibida apenas quando NÃO houver Quadro de Áreas)
-        if (!qaData) {
+        if (!qaData && !isAverbadaFeat) {
             const entries = Object.entries(props || {}).filter(([k]) => k !== '_quadro_area');
             if (entries.length > 0) {
                 content += `<div class="popup-subtitle-info" style="margin-top: 10px;"><i class="fa-solid fa-table"></i> Tabela de Atributos</div>`;

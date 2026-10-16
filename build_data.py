@@ -82,23 +82,24 @@ def build_dataset():
                         if isinstance(data, dict):
                             data['categoria'] = cat_key
                             
-                            # Attach matching Quadro de Área data if present
-                            norm_raw = normalize_text(raw_key)
-                            matched_qa = qa_data_map.get(norm_raw)
-                            if not matched_qa:
-                                clean_raw = norm_raw.replace('faz. ', '').replace('fazenda ', '').replace('sitio ', '').replace(' ', '').strip()
-                                for qk, qrows in qa_data_map.items():
-                                    clean_qk = qk.replace('faz. ', '').replace('fazenda ', '').replace('sitio ', '').replace(' ', '').strip()
-                                    if clean_raw == clean_qk:
-                                        matched_qa = qrows
-                                        break
+                            # Attach matching Quadro de Área data if present (apenas para Floresta Pronta)
+                            if cat_key in ("floresta_pronta", "floresta_mata_nativa"):
+                                norm_raw = normalize_text(raw_key)
+                                matched_qa = qa_data_map.get(norm_raw)
+                                if not matched_qa:
+                                    clean_raw = norm_raw.replace('faz. ', '').replace('fazenda ', '').replace('sitio ', '').replace(' ', '').strip()
+                                    for qk, qrows in qa_data_map.items():
+                                        clean_qk = qk.replace('faz. ', '').replace('fazenda ', '').replace('sitio ', '').replace(' ', '').strip()
+                                        if clean_raw == clean_qk:
+                                            matched_qa = qrows
+                                            break
 
-                            if matched_qa:
-                                data['quadro_area'] = matched_qa
-                                for feat in data.get('features', []):
-                                    if 'properties' not in feat or feat['properties'] is None:
-                                        feat['properties'] = {}
-                                    feat['properties']['_quadro_area'] = matched_qa
+                                if matched_qa:
+                                    data['quadro_area'] = matched_qa
+                                    for feat in data.get('features', []):
+                                        if 'properties' not in feat or feat['properties'] is None:
+                                            feat['properties'] = {}
+                                        feat['properties']['_quadro_area'] = matched_qa
 
                         geoportal_data['projetos'][key] = data
                         has_qa_str = f" [COM QUADRO DE ÁREAS ({len(data['quadro_area'])} temas)]" if 'quadro_area' in data else ""
