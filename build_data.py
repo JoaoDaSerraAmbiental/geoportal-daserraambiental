@@ -19,10 +19,11 @@ def normalize_text(text):
     nfkd = unicodedata.normalize('NFD', text)
     return "".join([c for c in nfkd if not unicodedata.combining(c)]).lower().strip()
 
-def get_category_key(folder_name):
+def get_category_key(folder_name, file_name=""):
     norm = normalize_text(folder_name)
+    norm_file = normalize_text(file_name)
     if "floresta" in norm:
-        if "mata" in norm or "nativa" in norm or "vegetac" in norm:
+        if any(k in norm for k in ("mata", "nativa", "vegetac", "averbad", "sare", "gleba")) or any(k in norm_file for k in ("averbad", "sare", "gleba")):
             return "floresta_mata_nativa"
         return "floresta_pronta"
     elif "propriedad" in norm:
@@ -70,9 +71,9 @@ def build_dataset():
             geojsons = [f for f in files if f.lower().endswith('.geojson')]
             if geojsons:
                 rel_path = os.path.relpath(root, projetos_dir)
-                cat_key = get_category_key(rel_path)
 
                 for gfile in sorted(geojsons):
+                    cat_key = get_category_key(rel_path, gfile)
                     raw_key = os.path.splitext(gfile)[0]
                     key = f"{cat_key}__{raw_key}"
                     filepath = os.path.join(root, gfile)
@@ -85,9 +86,10 @@ def build_dataset():
                             # Attach matching Quadro de Área data if present (apenas para Floresta Pronta)
                             if cat_key in ("floresta_pronta", "floresta_mata_nativa"):
                                 norm_raw = normalize_text(raw_key)
-                                matched_qa = qa_data_map.get(norm_raw)
+                                base_raw = norm_raw.split(' - ')[0].strip()
+                                matched_qa = qa_data_map.get(norm_raw) or qa_data_map.get(base_raw)
                                 if not matched_qa:
-                                    clean_raw = norm_raw.replace('faz. ', '').replace('fazenda ', '').replace('sitio ', '').replace(' ', '').strip()
+                                    clean_raw = base_raw.replace('faz. ', '').replace('fazenda ', '').replace('sitio ', '').replace(' ', '').strip()
                                     for qk, qrows in qa_data_map.items():
                                         clean_qk = qk.replace('faz. ', '').replace('fazenda ', '').replace('sitio ', '').replace(' ', '').strip()
                                         if clean_raw == clean_qk:

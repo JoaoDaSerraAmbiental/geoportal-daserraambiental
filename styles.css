@@ -1089,6 +1089,194 @@ body, html {
     cursor: pointer;
 }
 
+/* Sub-aba de Áreas Internas / SAREs dentro de cada Projeto de Floresta Pronta */
+#floresta-layer-list {
+    max-height: 360px;
+}
+
+.btn-toggle-sublayers {
+    position: relative;
+    transition: transform var(--transition-fast), background var(--transition-fast), color var(--transition-fast);
+}
+
+.btn-toggle-sublayers i {
+    transition: transform var(--transition-fast);
+    font-size: 0.75rem;
+}
+
+.layer-item.sublayers-open .btn-toggle-sublayers {
+    background: var(--accent-light);
+    color: var(--primary-color);
+}
+
+.layer-item.sublayers-open .btn-toggle-sublayers i {
+    transform: rotate(180deg);
+}
+
+.floresta-sublayers-panel {
+    display: none;
+    flex-direction: column;
+    gap: 5px;
+    margin-top: 4px;
+    padding: 8px 8px 6px 8px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: var(--radius-sm);
+}
+
+.layer-item.sublayers-open .floresta-sublayers-panel {
+    display: flex;
+}
+
+.sublayer-section-label {
+    font-size: 0.67rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+    padding: 0 2px;
+    margin-bottom: 1px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.sublayer-group-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 5px 6px;
+    margin-top: 3px;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 5px;
+}
+
+.sublayer-group-left {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 0.73rem;
+    font-weight: 700;
+    color: #1e3a8a;
+}
+
+.sublayer-group-badge {
+    background: #1d4ed8;
+    color: #ffffff;
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 10px;
+}
+
+.floresta-sare-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: 210px;
+    overflow-y: auto;
+    padding-right: 2px;
+}
+
+.floresta-sare-list::-webkit-scrollbar {
+    width: 5px;
+}
+
+.floresta-sare-list::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 3px;
+}
+
+.floresta-sare-list::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 3px;
+}
+
+.sublayer-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 5px 7px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 5px;
+    gap: 6px;
+    transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.sublayer-row:hover {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+}
+
+.sublayer-row-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 0;
+}
+
+.sublayer-checkbox {
+    width: 15px;
+    height: 15px;
+    accent-color: var(--accent-color);
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.sublayer-badge {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    flex-shrink: 0;
+    box-sizing: border-box;
+}
+
+.sublayer-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    flex: 1;
+}
+
+.sublayer-title {
+    font-size: 0.76rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sublayer-meta {
+    font-size: 0.66rem;
+    color: var(--text-muted);
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.btn-sublayer-zoom {
+    width: 22px;
+    height: 22px;
+    font-size: 0.72rem;
+    flex-shrink: 0;
+}
+
+.sublayer-empty {
+    padding: 7px 8px;
+    font-size: 0.71rem;
+    color: var(--text-muted);
+    font-style: italic;
+    background: #ffffff;
+    border: 1px dashed #cbd5e1;
+    border-radius: 5px;
+    text-align: center;
+}
+
 /* Sidebar Footer / Stats Bar */
 .sidebar-footer {
     padding: 12px 16px;

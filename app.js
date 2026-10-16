@@ -456,13 +456,88 @@ document.addEventListener('DOMContentLoaded', () => {
         return defaultColor;
     }
 
-    function isAverbadaLayer(k) {
-        return String(k || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes('averbad');
+    const SARE_COLOR_PALETTE = [
+        '#f59e0b', // Âmbar
+        '#3b82f6', // Azul Royal
+        '#ec4899', // Rosa Forte
+        '#8b5cf6', // Violeta
+        '#06b6d4', // Ciano
+        '#f97316', // Laranja
+        '#eab308', // Amarelo Ouro
+        '#14b8a6', // Turquesa
+        '#a855f7', // Roxo
+        '#fb7185', // Coral
+        '#0ea5e9', // Azul Céu
+        '#d97706', // Ocre
+        '#6366f1', // Índigo
+        '#84cc16', // Lima
+        '#e11d48', // Carmesim
+        '#2dd4bf'  // Água-marinha
+    ];
+
+    function isAverbadaLayer(k, data) {
+        const normK = String(k || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        if (normK.includes('averbad') || normK.includes('sare') || normK.includes('gleba') || normK.includes('compensac')) {
+            return true;
+        }
+        if (data && Array.isArray(data.features) && data.features.length > 0) {
+            const firstProps = data.features[0].properties || {};
+            if (firstProps.Processo || firstProps.processo || firstProps.SARE || firstProps.sare) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function extractSareFeatureInfo(feature, idx, fallbackName) {
+        const props = (feature && feature.properties) ? feature.properties : {};
+        const itemCode = props.Item || props.item || props.ITEM || props.SARE || props.sare || props.Gleba || props.gleba || '';
+        const processo = props.Processo || props.processo || props.PROCESSO || props.Proprietario || props.proprietario || props.Interessado || props.interessado || props.Nome || props.nome || props.NOME || '';
+        const tipo = props.Tipo || props.tipo || props.TIPO || props.Modalidade || props.modalidade || '';
+
+        let label = '';
+        if (itemCode && processo) {
+            label = `SARE ${itemCode} • ${processo}`;
+        } else if (processo) {
+            label = String(processo);
+        } else if (itemCode) {
+            label = `SARE ${itemCode}`;
+        } else {
+            label = `${fallbackName || 'SARE'} #${idx + 1}`;
+        }
+
+        let rawArea = props.Area_Calc ?? props.area_calc ?? props.Area_Decl ?? props.area_decl ?? props['Área (ha)'] ?? props['Area (ha)'] ?? props.area_ha ?? props.AREA_HA ?? props.Area ?? props.area;
+        let areaNum = null;
+        if (rawArea !== undefined && rawArea !== null && rawArea !== '') {
+            areaNum = typeof rawArea === 'number' ? rawArea : parseFloat(String(rawArea).replace(',', '.'));
+        }
+        if (areaNum === null || isNaN(areaNum)) {
+            const calc = calculateGeoJsonArea(feature);
+            if (calc) areaNum = parseFloat(calc);
+        }
+
+        const areaFormatted = (areaNum !== null && !isNaN(areaNum))
+            ? `${areaNum.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ha`
+            : '';
+
+        let subtitle = areaFormatted;
+        if (tipo) {
+            subtitle = subtitle ? `${subtitle} • ${tipo}` : String(tipo);
+        }
+        if (!subtitle) subtitle = 'Área interna do projeto';
+
+        return {
+            label,
+            subtitle,
+            areaHa: (areaNum !== null && !isNaN(areaNum)) ? areaNum.toFixed(2) : null
+        };
     }
 
     function getFeatureStyle(feature, defaultColor, opacity = 0.45, category = '', isAverbada = false) {
         const isPropriedade = (category === 'area_propriedade' || category === 'floresta_pronta');
-        const c = (isPropriedade || isAverbada) ? defaultColor : getFeatureColor(feature, defaultColor);
+        const c = isAverbada
+            ? ((feature && feature._sareColor) ? feature._sareColor : defaultColor)
+            : (isPropriedade ? defaultColor : getFeatureColor(feature, defaultColor));
 
         if (isPropriedade) {
             return {
@@ -475,12 +550,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (isAverbada) {
             return {
-                color: '#b45309',
+                color: '#78350f',
                 weight: 1.6,
                 opacity: 0.95,
                 dashArray: '5, 3',
                 fillColor: c,
-                fillOpacity: opacity !== undefined ? opacity : 0.52
+                fillOpacity: opacity !== undefined ? opacity : 0.58
             };
         }
         if (category === 'floresta_mata_nativa') {
@@ -504,7 +579,7 @@ document.addEventListener('DOMContentLoaded', () => {
     sortedProjectKeys.forEach((key) => {
         const data = geoData.projetos[key];
         const cat  = projectCategory[key] || 'restauracao';
-        const isAverbada = isAverbadaLayer(key);
+        const isAverbada = isAverbadaLayer(key, data);
         const color = isAverbada ? '#f59e0b' : (categoryColor[cat] || '#15803d');
 
         const projName = formatProjectName(key);
@@ -514,18 +589,45 @@ document.addEventListener('DOMContentLoaded', () => {
         const isPropriedade = (cat === 'area_propriedade' || cat === 'floresta_pronta');
         const isMataNativa = (cat === 'floresta_mata_nativa');
 
+        if (isAverbada && data && Array.isArray(data.features)) {
+            data.features.forEach((feat, idx) => {
+                feat._sareIndex = idx;
+                feat._sareColor = SARE_COLOR_PALETTE[idx % SARE_COLOR_PALETTE.length];
+            });
+        }
+
         let paneName = 'projetosPane';
         if (isPropriedade) paneName = 'propriedadePane';
         else if (isAverbada) paneName = 'averbadaPane';
         else if (isMataNativa) paneName = 'vegetacaoPane';
 
+        const featureItems = [];
+        let featCounter = 0;
+
         const geoLayerOptions = {
             pane: paneName,
             interactive: true,
-            style: (feature) => getFeatureStyle(feature, color, isPropriedade ? 0 : (isMataNativa ? 0.55 : 0.45), cat, isAverbada)
+            style: (feature) => getFeatureStyle(feature, color, isPropriedade ? 0 : (isAverbada ? 0.58 : (isMataNativa ? 0.55 : 0.45)), cat, isAverbada)
         };
 
         geoLayerOptions.onEachFeature = (feature, layer) => {
+            const idx = (feature && feature._sareIndex !== undefined) ? feature._sareIndex : featCounter++;
+            const featColor = (isAverbada && feature && feature._sareColor) ? feature._sareColor : color;
+
+            if (isAverbada) {
+                const info = extractSareFeatureInfo(feature, idx, projName);
+                featureItems.push({
+                    idx: idx,
+                    feature: feature,
+                    layer: layer,
+                    visible: true,
+                    color: featColor,
+                    label: info.label,
+                    subtitle: info.subtitle,
+                    areaHa: info.areaHa
+                });
+            }
+
             // Interactive hover style
             layer.on({
                 mouseover: (e) => {
@@ -534,7 +636,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (isPropriedade) {
                         l.setStyle({ weight: 3.2, fillOpacity: 0 });
                     } else if (isAverbada) {
-                        l.setStyle({ weight: 2.6, color: '#92400e', fillOpacity: 0.72 });
+                        l.setStyle({ weight: 2.8, color: '#ffffff', fillOpacity: 0.78 });
                     } else if (isMataNativa) {
                         l.setStyle({ weight: 1.8, fillOpacity: 0.75 });
                     } else {
@@ -547,7 +649,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 mouseout: (e) => {
                     if (window.MeasureTool && window.MeasureTool.isActive && !window.MeasureTool.isFinished) return;
                     const l = e.target;
-                    const currentOpacity = (projectLayers[key] && projectLayers[key].opacity !== undefined) ? projectLayers[key].opacity : (isMataNativa ? 0.55 : 0.45);
+                    const currentOpacity = (projectLayers[key] && projectLayers[key].opacity !== undefined) ? projectLayers[key].opacity : (isAverbada ? 0.58 : (isMataNativa ? 0.55 : 0.45));
                     l.setStyle(getFeatureStyle(l.feature || feature, color, currentOpacity, cat, isAverbada));
                 },
                 click: (e) => {
@@ -561,7 +663,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Attach Popup (busca Quadro de Áreas diretamente ou da propriedade vinculada)
             layer.bindPopup(() => {
                 const qa = data.quadro_area || (feature.properties ? feature.properties._quadro_area : null) || resolveQuadroAreaForProject(key);
-                return createPopupContent(feature.properties, projName, isAverbada ? '#d97706' : getFeatureColor(feature, color), qa);
+                return createPopupContent(feature.properties, projName, isAverbada ? featColor : getFeatureColor(feature, color), qa);
             });
         };
 
@@ -588,14 +690,29 @@ document.addEventListener('DOMContentLoaded', () => {
             color: color,
             categoria: cat,
             isAverbada: isAverbada,
+            featureItems: featureItems,
+            boundaryVisible: true,
             data: data,
             layer: geoLayer,
             featureCount: featureCount,
             areaHa: calculatedAreaHa,
             visible: true,
-            opacity: isPropriedade ? 0 : (isMataNativa ? 0.55 : 0.45)
+            opacity: isPropriedade ? 0 : (isAverbada ? 0.58 : (isMataNativa ? 0.55 : 0.45))
         };
     });
+
+    function normalizeFlorestaMatchName(s) {
+        return String(s || '')
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/^(floresta_pronta|floresta_mata_nativa)__/, '')
+            .replace(/^faz\.\s*/, '')
+            .replace(/^fazenda\s*/, '')
+            .replace(/^sitio\s*/, '')
+            .replace(/([a-z])\s+(\d)/g, '$1$2')
+            .trim();
+    }
 
     // Helper to resolve Quadro de Áreas for Banco de Áreas
     function resolveQuadroAreaForProject(k) {
@@ -603,11 +720,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (geoData.projetos[k] && geoData.projetos[k].quadro_area) {
             return geoData.projetos[k].quadro_area;
         }
-        const norm = (s) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/^(floresta_pronta|floresta_mata_nativa)__/, '').replace(/^faz\.\s*/, '').replace(/^fazenda\s*/, '').replace(/^sitio\s*/, '').trim();
-        const targetNorm = norm(k);
+        const targetNorm = normalizeFlorestaMatchName(k);
         for (const [pk, d] of Object.entries(geoData.projetos)) {
             if (pk.startsWith('floresta_pronta__') && d.quadro_area) {
-                const pNorm = norm(pk);
+                const pNorm = normalizeFlorestaMatchName(pk);
                 if (pNorm === targetNorm || targetNorm.startsWith(pNorm + ' ') || targetNorm.startsWith(pNorm + '-')) {
                     return d.quadro_area;
                 }
@@ -616,11 +732,10 @@ document.addEventListener('DOMContentLoaded', () => {
         return null;
     }
 
-    // Function to find all matching Floresta Mata Nativa keys (including sub-layers like Áreas Averbadas)
+    // Function to find all matching Floresta Mata Nativa keys (including sub-layers like Áreas Averbadas / SAREs)
     function findMatchingFlorestaMataKeys(propKey) {
         const rawName = propKey.replace(/^floresta_pronta__/, '').trim();
-        const norm = (s) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/^(floresta_pronta|floresta_mata_nativa)__/, '').replace(/^faz\.\s*/, '').replace(/^fazenda\s*/, '').replace(/^sitio\s*/, '').trim();
-        const targetNorm = norm(rawName);
+        const targetNorm = normalizeFlorestaMatchName(rawName);
         const matches = [];
 
         const candidate = `floresta_mata_nativa__${rawName}`;
@@ -628,7 +743,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         for (const k of Object.keys(projectLayers)) {
             if (k.startsWith('floresta_mata_nativa__') && !matches.includes(k)) {
-                const kNorm = norm(k);
+                const kNorm = normalizeFlorestaMatchName(k);
                 if (kNorm === targetNorm || kNorm.startsWith(targetNorm + ' ') || kNorm.startsWith(targetNorm + '-')) {
                     matches.push(k);
                 }
@@ -637,7 +752,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return matches;
     }
 
-    // Link Floresta Pronta (Limites de Propriedades) and Floresta Mata Nativa (Vegetação + Áreas Averbadas)
+    // Link Floresta Pronta (Limites de Propriedades) and Floresta Mata Nativa (Vegetação + Áreas Averbadas / SAREs)
     Object.keys(projectLayers).forEach((key) => {
         if (key.startsWith('floresta_pronta__')) {
             const propItem = projectLayers[key];
@@ -650,6 +765,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         projectLayers[mKey].linkedKey = key;
                     }
                 });
+            } else {
+                propItem.linkedKeys = [];
             }
         }
     });
@@ -937,22 +1054,138 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const defaultSliderVal = isPropriedade ? 95 : (isFlorestaPronta ? 55 : 45);
 
-        // Subtítulo com a área (e indicação de áreas averbadas se houver)
+        // Subtítulo com a área (e resumo de SAREs/áreas internas se houver) + Sub-aba de Floresta Pronta
         let areaVal = item.areaHa;
         let averbadaSubtitleHtml = '';
+        let sublayersPanelHtml = '';
+
         if (isFlorestaPronta) {
             const linkedKeys = item.linkedKeys || (item.linkedKey ? [item.linkedKey] : []);
-            const primaryMataKey = linkedKeys.find(lk => projectLayers[lk] && !projectLayers[lk].isAverbada) || item.linkedKey;
+            const baseMataKeys = linkedKeys.filter(lk => projectLayers[lk] && !projectLayers[lk].isAverbada);
+            const averbadaKeys = linkedKeys.filter(lk => projectLayers[lk] && projectLayers[lk].isAverbada);
+
+            const primaryMataKey = baseMataKeys[0] || null;
             const linked = primaryMataKey ? projectLayers[primaryMataKey] : null;
             if (linked && linked.areaHa) {
                 areaVal = linked.areaHa;
             }
-            const averbadaKey = linkedKeys.find(lk => projectLayers[lk] && projectLayers[lk].isAverbada);
-            if (averbadaKey && projectLayers[averbadaKey]) {
-                const avItem = projectLayers[averbadaKey];
-                const avHa = avItem.areaHa || '43.83';
-                averbadaSubtitleHtml = ` <span style="color: #d97706; font-weight: 600;" title="Áreas já averbadas (RL Compensação)">• <span style="display:inline-block;width:7px;height:7px;border-radius:2px;background:#f59e0b;border:1px dashed #b45309;vertical-align:middle;margin-right:2px;"></span>${avHa} ha averbados</span>`;
+
+            const allSares = [];
+            let totalAvHaNum = 0;
+            averbadaKeys.forEach(avKey => {
+                const avItem = projectLayers[avKey];
+                if (avItem) {
+                    if (avItem.areaHa) {
+                        const parsed = parseFloat(avItem.areaHa);
+                        if (!isNaN(parsed)) totalAvHaNum += parsed;
+                    }
+                    if (Array.isArray(avItem.featureItems)) {
+                        avItem.featureItems.forEach(fItem => {
+                            allSares.push({ ...fItem, avKey: avKey });
+                        });
+                    }
+                }
+            });
+
+            if (allSares.length > 0) {
+                const avHaStr = totalAvHaNum > 0
+                    ? totalAvHaNum.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                    : '';
+                averbadaSubtitleHtml = ` <span style="color: #1d4ed8; font-weight: 600;" title="Clique na seta ao lado para abrir e controlar os ${allSares.length} SAREs individualmente">• ${allSares.length} SAREs${avHaStr ? ` (${avHaStr} ha)` : ''}</span>`;
             }
+
+            const propAreaStr = item.areaHa
+                ? `${parseFloat(item.areaHa).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ha • Perímetro`
+                : 'Perímetro da propriedade';
+
+            const mataRowsHtml = baseMataKeys.map(mKey => {
+                const mItem = projectLayers[mKey];
+                if (!mItem) return '';
+                const mAreaStr = mItem.areaHa
+                    ? `${parseFloat(mItem.areaHa).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ha • Cobertura florestal`
+                    : 'Cobertura florestal';
+                return `
+                    <div class="sublayer-row">
+                        <div class="sublayer-row-left">
+                            <input type="checkbox" class="sublayer-checkbox sublayer-toggle-mata" data-prop-key="${key}" data-mata-key="${mKey}" ${mItem.visible ? 'checked' : ''}>
+                            <div class="sublayer-badge" style="background-color: #15803d; border: 1px solid #14532d;"></div>
+                            <div class="sublayer-info">
+                                <div class="sublayer-title" title="Vegetação Nativa (${item.name})">Vegetação Nativa</div>
+                                <div class="sublayer-meta">${mAreaStr}</div>
+                            </div>
+                        </div>
+                        <button type="button" class="btn-icon btn-sublayer-zoom" data-zoom-type="mata" data-prop-key="${key}" data-mata-key="${mKey}" title="Aproximar zoom na vegetação nativa">
+                            <i class="fa-solid fa-crosshairs"></i>
+                        </button>
+                    </div>
+                `;
+            }).join('');
+
+            let saresBlockHtml = '';
+            if (allSares.length > 0) {
+                const sareItemsHtml = allSares.map((s) => `
+                    <div class="sublayer-row">
+                        <div class="sublayer-row-left">
+                            <input type="checkbox" class="sublayer-checkbox sublayer-toggle-sare" data-prop-key="${key}" data-av-key="${s.avKey}" data-sare-idx="${s.idx}" ${s.visible ? 'checked' : ''}>
+                            <div class="sublayer-badge" style="background-color: ${s.color}; border: 1px dashed #78350f;"></div>
+                            <div class="sublayer-info">
+                                <div class="sublayer-title" title="${s.label}">${s.label}</div>
+                                <div class="sublayer-meta" title="${s.subtitle}">${s.subtitle}</div>
+                            </div>
+                        </div>
+                        <button type="button" class="btn-icon btn-sublayer-zoom" data-zoom-type="sare" data-prop-key="${key}" data-av-key="${s.avKey}" data-sare-idx="${s.idx}" title="Aproximar zoom e ver detalhes deste SARE">
+                            <i class="fa-solid fa-crosshairs"></i>
+                        </button>
+                    </div>
+                `).join('');
+
+                saresBlockHtml = `
+                    <div class="sublayer-group-header">
+                        <div class="sublayer-group-left">
+                            <input type="checkbox" class="sublayer-checkbox sublayer-toggle-all-sares" data-prop-key="${key}" checked title="Ativar / desativar todos os SAREs deste projeto">
+                            <span>SAREs / Áreas do Projeto</span>
+                        </div>
+                        <span class="sublayer-group-badge">${allSares.length}</span>
+                    </div>
+                    <div class="floresta-sare-list">
+                        ${sareItemsHtml}
+                    </div>
+                `;
+            } else {
+                saresBlockHtml = `
+                    <div class="sublayer-group-header" style="background: #f1f5f9; border-color: #e2e8f0;">
+                        <div class="sublayer-group-left" style="color: #64748b;">
+                            <i class="fa-solid fa-layer-group" style="font-size: 0.7rem;"></i>
+                            <span>SAREs / Áreas do Projeto</span>
+                        </div>
+                        <span class="sublayer-group-badge" style="background: #94a3b8;">0</span>
+                    </div>
+                    <div class="sublayer-empty">Nenhum SARE / área interna cadastrada neste projeto</div>
+                `;
+            }
+
+            sublayersPanelHtml = `
+                <div class="floresta-sublayers-panel">
+                    <div class="sublayer-section-label">
+                        <span>Estrutura do Projeto</span>
+                    </div>
+                    <div class="sublayer-row">
+                        <div class="sublayer-row-left">
+                            <input type="checkbox" class="sublayer-checkbox sublayer-toggle-prop" data-prop-key="${key}" ${item.boundaryVisible !== false ? 'checked' : ''}>
+                            <div class="sublayer-badge" style="background-color: transparent; border: 2px solid #dc2626;"></div>
+                            <div class="sublayer-info">
+                                <div class="sublayer-title" title="Limite do Projeto (${item.name})">Limite do Projeto</div>
+                                <div class="sublayer-meta">${propAreaStr}</div>
+                            </div>
+                        </div>
+                        <button type="button" class="btn-icon btn-sublayer-zoom" data-zoom-type="prop" data-prop-key="${key}" title="Aproximar zoom no limite do projeto">
+                            <i class="fa-solid fa-crosshairs"></i>
+                        </button>
+                    </div>
+                    ${mataRowsHtml}
+                    ${saresBlockHtml}
+                </div>
+            `;
         }
 
         layerEl.innerHTML = `
@@ -960,24 +1193,30 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="layer-left">
                     <input type="checkbox" class="custom-checkbox layer-toggle" data-key="${key}" ${item.visible ? 'checked' : ''}>
                     <div class="color-badge" style="${badgeStyle}"></div>
-                    <div>
+                    <div style="min-width: 0; flex: 1;">
                         <div class="layer-name" title="${item.name}">${item.name}</div>
                         ${areaVal ? `<div class="layer-subtitle">${areaVal} ha${averbadaSubtitleHtml}</div>` : ''}
                     </div>
                 </div>
                 <div class="layer-actions">
-                    <button class="btn-icon btn-zoom-layer" data-key="${key}" title="Aproximar zoom nesta propriedade">
+                    <button type="button" class="btn-icon btn-zoom-layer" data-key="${key}" title="Aproximar zoom nesta propriedade">
                         <i class="fa-solid fa-crosshairs"></i>
                     </button>
-                    <button class="btn-icon btn-expand-layer" data-key="${key}" title="Ajustar opacidade da vegetação">
+                    <button type="button" class="btn-icon btn-expand-layer" data-key="${key}" title="Ajustar opacidade">
                         <i class="fa-solid fa-sliders"></i>
                     </button>
+                    ${isFlorestaPronta ? `
+                    <button type="button" class="btn-icon btn-toggle-sublayers" data-key="${key}" title="Abrir lista de áreas e SAREs deste projeto">
+                        <i class="fa-solid fa-chevron-down"></i>
+                    </button>
+                    ` : ''}
                 </div>
             </div>
             <div class="layer-extra-controls">
                 <span class="opacity-label">${isPropriedade ? 'Contorno:' : 'Opacidade:'}</span>
                 <input type="range" class="opacity-slider" data-key="${key}" min="0" max="100" value="${defaultSliderVal}">
             </div>
+            ${sublayersPanelHtml}
         `;
         return layerEl;
     }
@@ -1174,6 +1413,104 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    // Helpers para sincronizar estado completo de projetos Floresta Pronta (Limite + Vegetação + SAREs individuais)
+    function setFlorestaPropertyAllState(propKey, targetState) {
+        const propItem = projectLayers[propKey];
+        if (!propItem) return;
+
+        propItem.visible = targetState;
+        propItem.boundaryVisible = targetState;
+        if (targetState) {
+            if (!map.hasLayer(propItem.layer)) map.addLayer(propItem.layer);
+        } else {
+            if (map.hasLayer(propItem.layer)) map.removeLayer(propItem.layer);
+        }
+
+        const linkedKeys = propItem.linkedKeys || (propItem.linkedKey ? [propItem.linkedKey] : []);
+        linkedKeys.forEach(lk => {
+            const linked = projectLayers[lk];
+            if (!linked) return;
+            linked.visible = targetState;
+            if (linked.isAverbada && Array.isArray(linked.featureItems)) {
+                linked.featureItems.forEach(fItem => {
+                    fItem.visible = targetState;
+                    if (targetState) {
+                        if (!linked.layer.hasLayer(fItem.layer)) linked.layer.addLayer(fItem.layer);
+                    } else {
+                        if (linked.layer.hasLayer(fItem.layer)) linked.layer.removeLayer(fItem.layer);
+                    }
+                });
+            }
+            if (targetState) {
+                if (!map.hasLayer(linked.layer)) map.addLayer(linked.layer);
+            } else {
+                if (map.hasLayer(linked.layer)) map.removeLayer(linked.layer);
+            }
+        });
+
+        const cardEl = document.querySelector(`.layer-item[data-key="${CSS.escape(propKey)}"]`);
+        if (cardEl) {
+            const mainChk = cardEl.querySelector('.layer-toggle');
+            if (mainChk) {
+                mainChk.checked = targetState;
+                mainChk.indeterminate = false;
+            }
+            cardEl.querySelectorAll('.sublayer-checkbox').forEach(chk => {
+                chk.checked = targetState;
+                chk.indeterminate = false;
+            });
+        }
+    }
+
+    function syncFlorestaPropertyParentState(propKey) {
+        const propItem = projectLayers[propKey];
+        if (!propItem) return;
+
+        const linkedKeys = propItem.linkedKeys || (propItem.linkedKey ? [propItem.linkedKey] : []);
+        const baseMataItems = linkedKeys.map(lk => projectLayers[lk]).filter(x => x && !x.isAverbada);
+        const avItems = linkedKeys.map(lk => projectLayers[lk]).filter(x => x && x.isAverbada);
+
+        const allSareStates = [];
+        avItems.forEach(av => {
+            if (Array.isArray(av.featureItems)) {
+                const anyAvVisible = av.featureItems.some(f => f.visible);
+                av.visible = anyAvVisible;
+                if (anyAvVisible) {
+                    if (!map.hasLayer(av.layer)) map.addLayer(av.layer);
+                } else {
+                    if (map.hasLayer(av.layer)) map.removeLayer(av.layer);
+                }
+                av.featureItems.forEach(f => allSareStates.push(Boolean(f.visible)));
+            }
+        });
+
+        const allStates = [
+            Boolean(propItem.boundaryVisible !== false),
+            ...baseMataItems.map(m => Boolean(m.visible)),
+            ...allSareStates
+        ];
+
+        const anyVisible = allStates.some(Boolean);
+        const allVisible = allStates.length > 0 && allStates.every(Boolean);
+        propItem.visible = anyVisible;
+
+        const cardEl = document.querySelector(`.layer-item[data-key="${CSS.escape(propKey)}"]`);
+        if (cardEl) {
+            const mainChk = cardEl.querySelector('.layer-toggle');
+            if (mainChk) {
+                mainChk.checked = anyVisible;
+                mainChk.indeterminate = anyVisible && !allVisible;
+            }
+            const sareGroupChk = cardEl.querySelector('.sublayer-toggle-all-sares');
+            if (sareGroupChk && allSareStates.length > 0) {
+                const anySare = allSareStates.some(Boolean);
+                const allSare = allSareStates.every(Boolean);
+                sareGroupChk.checked = anySare;
+                sareGroupChk.indeterminate = anySare && !allSare;
+            }
+        }
+    }
+
     // Alternar todas as camadas de uma categoria (botão no cabeçalho do acordeão)
     function toggleCategory(cat) {
         const catKeys = Object.keys(projectLayers).filter(key => {
@@ -1190,6 +1527,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         catKeys.forEach(key => {
             const item = projectLayers[key];
+            if (cat === 'floresta_pronta') {
+                setFlorestaPropertyAllState(key, targetState);
+                return;
+            }
             item.visible = targetState;
             if (targetState) {
                 if (!map.hasLayer(item.layer)) {
@@ -1203,20 +1544,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     map.removeLayer(item.layer);
                 }
             }
-
-            // Sincroniza camadas vinculadas (ex: vegetação e áreas averbadas incorporadas em Banco de Áreas)
-            const linkedKeys = item.linkedKeys || (item.linkedKey ? [item.linkedKey] : []);
-            linkedKeys.forEach(lk => {
-                const linked = projectLayers[lk];
-                if (linked) {
-                    linked.visible = targetState;
-                    if (targetState) {
-                        if (!map.hasLayer(linked.layer)) map.addLayer(linked.layer);
-                    } else {
-                        if (map.hasLayer(linked.layer)) map.removeLayer(linked.layer);
-                    }
-                }
-            });
         });
 
         // Atualizar checkboxes DOM correspondentes
@@ -1225,7 +1552,7 @@ document.addEventListener('DOMContentLoaded', () => {
         else if (cat === 'floresta_pronta') containerId = 'floresta-layer-list';
         else if (cat === 'area_propriedade') containerId = 'propriedade-layer-list';
 
-        if (containerId) {
+        if (containerId && cat !== 'floresta_pronta') {
             const container = document.getElementById(containerId);
             if (container) {
                 container.querySelectorAll('.layer-toggle').forEach(chk => {
@@ -1275,38 +1602,127 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }, true);
 
-    // Project Checkbox Toggle (delegado no sidebar-body para cobrir ambas categorias)
+    // Project & Sublayer Checkbox Toggle (delegado no sidebar-body)
     document.querySelector('.sidebar-body').addEventListener('change', (e) => {
-        if (e.target.classList.contains('layer-toggle')) {
-            const key = e.target.dataset.key;
-            const isChecked = e.target.checked;
+        const target = e.target;
+
+        // 1. Master toggle do projeto
+        if (target.classList.contains('layer-toggle')) {
+            const key = target.dataset.key;
+            const isChecked = target.checked;
             const item = projectLayers[key];
 
             if (item) {
-                item.visible = isChecked;
-                if (isChecked) {
-                    map.addLayer(item.layer);
-                    if (item.categoria === 'area_propriedade') {
-                        item.layer.bringToBack();
-                    }
+                if (item.categoria === 'floresta_pronta') {
+                    setFlorestaPropertyAllState(key, isChecked);
                 } else {
-                    map.removeLayer(item.layer);
+                    item.visible = isChecked;
+                    if (isChecked) {
+                        map.addLayer(item.layer);
+                        if (item.categoria === 'area_propriedade') {
+                            item.layer.bringToBack();
+                        }
+                    } else {
+                        map.removeLayer(item.layer);
+                    }
                 }
 
-                // Sincroniza camadas incorporadas (ex: floresta_pronta <-> floresta_mata_nativa + averbadas)
-                const linkedKeys = item.linkedKeys || (item.linkedKey ? [item.linkedKey] : []);
+                updateAllCategoryButtons();
+                updateFooterStats();
+            }
+            return;
+        }
+
+        // 2. Sub-aba: Limite do Projeto (borda vermelha)
+        if (target.classList.contains('sublayer-toggle-prop')) {
+            const propKey = target.dataset.propKey;
+            const isChecked = target.checked;
+            const propItem = projectLayers[propKey];
+            if (propItem) {
+                propItem.boundaryVisible = isChecked;
+                if (isChecked) {
+                    if (!map.hasLayer(propItem.layer)) map.addLayer(propItem.layer);
+                } else {
+                    if (map.hasLayer(propItem.layer)) map.removeLayer(propItem.layer);
+                }
+                syncFlorestaPropertyParentState(propKey);
+                updateAllCategoryButtons();
+                updateFooterStats();
+            }
+            return;
+        }
+
+        // 3. Sub-aba: Vegetação Nativa
+        if (target.classList.contains('sublayer-toggle-mata')) {
+            const propKey = target.dataset.propKey;
+            const mataKey = target.dataset.mataKey;
+            const isChecked = target.checked;
+            const mataItem = projectLayers[mataKey];
+            if (mataItem) {
+                mataItem.visible = isChecked;
+                if (isChecked) {
+                    if (!map.hasLayer(mataItem.layer)) map.addLayer(mataItem.layer);
+                } else {
+                    if (map.hasLayer(mataItem.layer)) map.removeLayer(mataItem.layer);
+                }
+                syncFlorestaPropertyParentState(propKey);
+                updateAllCategoryButtons();
+                updateFooterStats();
+            }
+            return;
+        }
+
+        // 4. Sub-aba: Ativar/Desativar todos os SAREs do projeto
+        if (target.classList.contains('sublayer-toggle-all-sares')) {
+            const propKey = target.dataset.propKey;
+            const isChecked = target.checked;
+            const propItem = projectLayers[propKey];
+            if (propItem) {
+                const linkedKeys = propItem.linkedKeys || (propItem.linkedKey ? [propItem.linkedKey] : []);
                 linkedKeys.forEach(lk => {
-                    const linked = projectLayers[lk];
-                    if (linked) {
-                        linked.visible = isChecked;
-                        if (isChecked) {
-                            map.addLayer(linked.layer);
-                        } else {
-                            map.removeLayer(linked.layer);
-                        }
+                    const avItem = projectLayers[lk];
+                    if (avItem && avItem.isAverbada && Array.isArray(avItem.featureItems)) {
+                        avItem.featureItems.forEach(fItem => {
+                            fItem.visible = isChecked;
+                            if (isChecked) {
+                                if (!avItem.layer.hasLayer(fItem.layer)) avItem.layer.addLayer(fItem.layer);
+                            } else {
+                                if (avItem.layer.hasLayer(fItem.layer)) avItem.layer.removeLayer(fItem.layer);
+                            }
+                        });
                     }
                 });
+                const cardEl = target.closest('.layer-item');
+                if (cardEl) {
+                    cardEl.querySelectorAll('.sublayer-toggle-sare').forEach(chk => {
+                        chk.checked = isChecked;
+                    });
+                }
+                syncFlorestaPropertyParentState(propKey);
+                updateAllCategoryButtons();
+                updateFooterStats();
+            }
+            return;
+        }
 
+        // 5. Sub-aba: SARE individual
+        if (target.classList.contains('sublayer-toggle-sare')) {
+            const propKey = target.dataset.propKey;
+            const avKey = target.dataset.avKey;
+            const sareIdx = parseInt(target.dataset.sareIdx, 10);
+            const isChecked = target.checked;
+            const avItem = projectLayers[avKey];
+            if (avItem && Array.isArray(avItem.featureItems)) {
+                const fItem = avItem.featureItems.find(f => f.idx === sareIdx);
+                if (fItem) {
+                    fItem.visible = isChecked;
+                    if (isChecked) {
+                        if (!avItem.layer.hasLayer(fItem.layer)) avItem.layer.addLayer(fItem.layer);
+                    } else {
+                        if (avItem.layer.hasLayer(fItem.layer)) avItem.layer.removeLayer(fItem.layer);
+                    }
+                }
+                syncFlorestaPropertyParentState(propKey);
                 updateAllCategoryButtons();
                 updateFooterStats();
             }
@@ -1331,7 +1747,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Zoom / Expand buttons (delegado no sidebar-body para cobrir ambas categorias)
+    // Zoom / Expand / Sublayers buttons (delegado no sidebar-body)
     document.querySelector('.sidebar-body').addEventListener('click', (e) => {
         const zoomBtn = e.target.closest('.btn-zoom-layer');
         if (zoomBtn) {
@@ -1352,12 +1768,92 @@ document.addEventListener('DOMContentLoaded', () => {
                     map.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 });
                 }
             }
+            return;
         }
 
         const expandBtn = e.target.closest('.btn-expand-layer');
         if (expandBtn) {
             const layerItem = expandBtn.closest('.layer-item');
             layerItem.classList.toggle('expanded');
+            return;
+        }
+
+        const sublayersBtn = e.target.closest('.btn-toggle-sublayers');
+        if (sublayersBtn) {
+            const layerItem = sublayersBtn.closest('.layer-item');
+            if (layerItem) {
+                layerItem.classList.toggle('sublayers-open');
+            }
+            return;
+        }
+
+        const subZoomBtn = e.target.closest('.btn-sublayer-zoom');
+        if (subZoomBtn) {
+            const zoomType = subZoomBtn.dataset.zoomType;
+            const propKey = subZoomBtn.dataset.propKey;
+            const cardEl = subZoomBtn.closest('.layer-item');
+
+            if (zoomType === 'prop') {
+                const propItem = projectLayers[propKey];
+                if (propItem && propItem.layer) {
+                    if (propItem.boundaryVisible === false) {
+                        propItem.boundaryVisible = true;
+                        if (!map.hasLayer(propItem.layer)) map.addLayer(propItem.layer);
+                        if (cardEl) {
+                            const chk = cardEl.querySelector('.sublayer-toggle-prop');
+                            if (chk) chk.checked = true;
+                        }
+                        syncFlorestaPropertyParentState(propKey);
+                        updateAllCategoryButtons();
+                    }
+                    const b = propItem.layer.getBounds();
+                    if (b.isValid()) map.fitBounds(b, { padding: [50, 50], maxZoom: 16 });
+                }
+            } else if (zoomType === 'mata') {
+                const mataKey = subZoomBtn.dataset.mataKey;
+                const mataItem = projectLayers[mataKey];
+                if (mataItem && mataItem.layer) {
+                    if (!mataItem.visible) {
+                        mataItem.visible = true;
+                        if (!map.hasLayer(mataItem.layer)) map.addLayer(mataItem.layer);
+                        if (cardEl) {
+                            const chk = cardEl.querySelector(`.sublayer-toggle-mata[data-mata-key="${CSS.escape(mataKey)}"]`);
+                            if (chk) chk.checked = true;
+                        }
+                        syncFlorestaPropertyParentState(propKey);
+                        updateAllCategoryButtons();
+                    }
+                    const b = mataItem.layer.getBounds();
+                    if (b.isValid()) map.fitBounds(b, { padding: [50, 50], maxZoom: 16 });
+                }
+            } else if (zoomType === 'sare') {
+                const avKey = subZoomBtn.dataset.avKey;
+                const sareIdx = parseInt(subZoomBtn.dataset.sareIdx, 10);
+                const avItem = projectLayers[avKey];
+                if (avItem && Array.isArray(avItem.featureItems)) {
+                    const fItem = avItem.featureItems.find(f => f.idx === sareIdx);
+                    if (fItem && fItem.layer) {
+                        if (!fItem.visible) {
+                            fItem.visible = true;
+                            if (!avItem.layer.hasLayer(fItem.layer)) avItem.layer.addLayer(fItem.layer);
+                            if (cardEl) {
+                                const chk = cardEl.querySelector(`.sublayer-toggle-sare[data-av-key="${CSS.escape(avKey)}"][data-sare-idx="${sareIdx}"]`);
+                                if (chk) chk.checked = true;
+                            }
+                            syncFlorestaPropertyParentState(propKey);
+                            updateAllCategoryButtons();
+                        }
+                        if (!map.hasLayer(avItem.layer)) map.addLayer(avItem.layer);
+                        const b = fItem.layer.getBounds();
+                        if (b.isValid()) {
+                            map.fitBounds(b, { padding: [60, 60], maxZoom: 17 });
+                            setTimeout(() => {
+                                if (fItem.layer.openPopup) fItem.layer.openPopup();
+                            }, 280);
+                        }
+                    }
+                }
+            }
         }
     });
 
@@ -1494,6 +1990,11 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-select-all').addEventListener('click', () => {
         Object.keys(projectLayers).forEach(key => {
             const item = projectLayers[key];
+            if (item.categoria === 'floresta_pronta') {
+                setFlorestaPropertyAllState(key, true);
+                return;
+            }
+            if (item.categoria === 'floresta_mata_nativa') return;
             item.visible = true;
             if (!map.hasLayer(item.layer)) {
                 map.addLayer(item.layer);
@@ -1502,7 +2003,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         });
-        document.querySelectorAll('.layer-toggle').forEach(chk => chk.checked = true);
+        document.querySelectorAll('.layer-toggle').forEach(chk => {
+            chk.checked = true;
+            chk.indeterminate = false;
+        });
         updateAllCategoryButtons();
         updateFooterStats();
     });
@@ -1510,12 +2014,20 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-deselect-all').addEventListener('click', () => {
         Object.keys(projectLayers).forEach(key => {
             const item = projectLayers[key];
+            if (item.categoria === 'floresta_pronta') {
+                setFlorestaPropertyAllState(key, false);
+                return;
+            }
+            if (item.categoria === 'floresta_mata_nativa') return;
             item.visible = false;
             if (map.hasLayer(item.layer)) {
                 map.removeLayer(item.layer);
             }
         });
-        document.querySelectorAll('.layer-toggle').forEach(chk => chk.checked = false);
+        document.querySelectorAll('.layer-toggle').forEach(chk => {
+            chk.checked = false;
+            chk.indeterminate = false;
+        });
         updateAllCategoryButtons();
         updateFooterStats();
     });
