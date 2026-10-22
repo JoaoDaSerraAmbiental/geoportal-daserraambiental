@@ -31,6 +31,77 @@ def get_category_key(folder_name, file_name=""):
     else:
         return "restauracao"
 
+def check_and_fix_wgs84(data, filepath):
+    """Verifica se as coordenadas estão em WGS84 (lat/lon). Se estiverem em UTM/outra projeção, tenta converter."""
+    feats = data.get('features', [])
+    if not feats:
+        return data
+
+    first_coord = None
+    for feat in feats:
+        geom = feat.get('geometry')
+        if geom and 'coordinates' in geom:
+            coords = geom['coordinates']
+            cur = coords
+            while isinstance(cur, list) and cur and isinstance(cur[0], list):
+                cur = cur[0]
+            if cur and len(cur) >= 2 and isinstance(cur[0], (int, float)):
+                first_coord = (cur[0], cur[1])
+                break
+
+    if not first_coord:
+        return data
+
+    x, y = first_coord
+    if abs(x) <= 180 and abs(y) <= 90:
+        return data
+
+    print(f" [AVISO CRS] {os.path.basename(filepath)} possui coordenadas métricas ({x:.1f}, {y:.1f}). Tentando reprojetar para WGS84...")
+    try:
+        from osgeo import osr
+        if 'PROJ_LIB' not in os.environ:
+            for cand in [r'C:\Program Files\QGIS 3.44.12\share\proj', r'C:\Program Files\QGIS 3.40\share\proj']:
+                if os.path.exists(cand):
+                    os.environ['PROJ_LIB'] = cand
+                    break
+
+        src_epsg = 31983
+        crs_name = str(data.get('crs', {}).get('properties', {}).get('name', ''))
+        if '31982' in crs_name:
+            src_epsg = 31982
+        elif '31983' in crs_name:
+            src_epsg = 31983
+        elif '31984' in crs_name:
+            src_epsg = 31984
+
+        src = osr.SpatialReference()
+        src.ImportFromEPSG(src_epsg)
+        dst = osr.SpatialReference()
+        dst.ImportFromEPSG(4326)
+        dst.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
+        ct = osr.CoordinateTransformation(src, dst)
+
+        def reproject_coords(coords):
+            if isinstance(coords[0], (int, float)):
+                lon, lat, _ = ct.TransformPoint(coords[0], coords[1])
+                return [round(lon, 8), round(lat, 8)]
+            return [reproject_coords(c) for c in coords]
+
+        for feat in feats:
+            geom = feat.get('geometry')
+            if geom and 'coordinates' in geom:
+                geom['coordinates'] = reproject_coords(geom['coordinates'])
+
+        data['crs'] = {
+            'type': 'name',
+            'properties': {'name': 'urn:ogc:def:crs:OGC:1.3:CRS84'}
+        }
+        print(f" [SUCESSO REPROJEÇÃO] {os.path.basename(filepath)} convertido com sucesso para WGS84 (EPSG:4326).")
+    except Exception as err:
+        print(f" [ERRO REPROJEÇÃO] Não foi possível reprojetar {os.path.basename(filepath)}: {err}")
+
+    return data
+
 def build_dataset():
     base_dir = os.path.dirname(os.path.abspath(__file__))
     projetos_dir = os.path.join(base_dir, 'Limites de Projetos')
@@ -81,6 +152,7 @@ def build_dataset():
                         with open(filepath, 'r', encoding='utf-8') as f:
                             data = json.load(f)
                         if isinstance(data, dict):
+                            data = check_and_fix_wgs84(data, filepath)
                             data['categoria'] = cat_key
                             
                             # Attach matching Quadro de Área data if present (apenas para Floresta Pronta)

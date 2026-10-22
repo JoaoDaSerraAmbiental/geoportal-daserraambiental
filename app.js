@@ -670,11 +670,19 @@ document.addEventListener('DOMContentLoaded', () => {
         // Build Leaflet GeoJSON layer
         const geoLayer = L.geoJSON(data, geoLayerOptions);
 
-        // Expand overall project bounds
+        // Expand overall project bounds (only if coordinates are valid WGS84 lat/lng)
         try {
             const bounds = geoLayer.getBounds();
             if (bounds.isValid()) {
-                allProjectBounds.extend(bounds);
+                const sw = bounds.getSouthWest();
+                const ne = bounds.getNorthEast();
+                const isWGS84 = sw.lat >= -90 && sw.lat <= 90 && ne.lat >= -90 && ne.lat <= 90 &&
+                                sw.lng >= -180 && sw.lng <= 180 && ne.lng >= -180 && ne.lng <= 180;
+                if (isWGS84) {
+                    allProjectBounds.extend(bounds);
+                } else {
+                    console.warn('Coordenadas fora do padrão WGS84 (lat/lng), ignorando dos limites gerais:', key);
+                }
             }
         } catch (err) {
             console.warn('Invalid bounds for project:', key);
@@ -1022,9 +1030,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const outrosBadge = document.getElementById('outros-count');
     if (outrosBadge) outrosBadge.textContent = outrosKeys.length;
 
-    // Initial zoom to fit all project boundaries
-    if (allProjectBounds.isValid()) {
+    // Initial zoom to fit all project boundaries (with fallback to SP state)
+    const isAllBoundsValid = allProjectBounds.isValid() &&
+                             allProjectBounds.getSouth() >= -90 && allProjectBounds.getNorth() <= 90 &&
+                             allProjectBounds.getWest() >= -180 && allProjectBounds.getEast() <= 180;
+    if (isAllBoundsValid) {
         map.fitBounds(allProjectBounds, { padding: [40, 40] });
+    } else {
+        map.setView([-23.5505, -46.6333], 8);
     }
 
     // ----------------------------------------------------------------------
@@ -2746,8 +2759,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnRecenter = document.getElementById('btn-recenter');
     if (btnRecenter) {
         btnRecenter.addEventListener('click', () => {
-            if (allProjectBounds.isValid()) {
+            const isAllBoundsValid = allProjectBounds.isValid() &&
+                                     allProjectBounds.getSouth() >= -90 && allProjectBounds.getNorth() <= 90 &&
+                                     allProjectBounds.getWest() >= -180 && allProjectBounds.getEast() <= 180;
+            if (isAllBoundsValid) {
                 map.fitBounds(allProjectBounds, { padding: [40, 40] });
+            } else {
+                map.setView([-23.5505, -46.6333], 8);
             }
         });
     }
