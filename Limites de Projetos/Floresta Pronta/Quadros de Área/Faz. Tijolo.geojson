@@ -1,0 +1,10 @@
+{
+"type": "FeatureCollection",
+"name": "Faz",
+"features": [
+{"type":"Feature","properties":{"Tema":"Propriedade","Área (ha)":623.51,"%":100.0},"geometry":null},
+{"type":"Feature","properties":{"Tema":"Reserva Legal","Área (ha)":124.7,"%":20.0},"geometry":null},
+{"type":"Feature","properties":{"Tema":"Vegetação Nativa","Área (ha)":141.22,"%":22.65},"geometry":null},
+{"type":"Feature","properties":{"Tema":"Vegetação Excedente","Área (ha)":16.52,"%":2.65},"geometry":null}
+]
+}
