@@ -10,32 +10,48 @@ $pyScript  = Join-Path $baseDir "build_data.py"
 
 # 1. Tenta executar o script Python (build_data.py), que inclui processamento de Quadros de Área
 if (Test-Path $pyScript) {
-    # Procura por Python no PATH ou na pasta do usuário (AppData)
-    $pyExecs = @(
-        (Get-Command py -ErrorAction SilentlyContinue),
-        (Get-Command python -ErrorAction SilentlyContinue),
-        (Get-ChildItem "$env:LOCALAPPDATA\Python\*\python.exe" -ErrorAction SilentlyContinue | Select-Object -First 1),
-        (Get-ChildItem "$env:LOCALAPPDATA\Programs\Python\*\python.exe" -ErrorAction SilentlyContinue | Select-Object -First 1),
-        (Get-ChildItem "C:\Program Files\QGIS*\apps\Python*\python.exe" -ErrorAction SilentlyContinue | Select-Object -First 1)
-    ) | Where-Object { $_ }
+    $pyCandidates = [System.Collections.Generic.List[string]]::new()
 
-    foreach ($pyCmd in $pyExecs) {
-        $pyPath = if ($pyCmd.Source) { $pyCmd.Source } else { $pyCmd.FullName }
-        if (Test-Path $pyPath) {
-            Write-Host "Executando build_data.py via '$pyPath'..."
-            & $pyPath $pyScript
-            if ($LASTEXITCODE -eq 0) { exit 0 }
+    # Procura Python no QGIS
+    try {
+        $qgisPy = Resolve-Path "C:\Program Files\QGIS*\apps\Python*\python.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($qgisPy) { $pyCandidates.Add($qgisPy.Path) }
+    } catch {}
+
+    # Procura py.exe e python.exe no PATH (ignorando o stub da Microsoft Store)
+    $cmdPy = Get-Command py -ErrorAction SilentlyContinue
+    if ($cmdPy -and $cmdPy.Source) { $pyCandidates.Add($cmdPy.Source) }
+
+    $cmdPython = Get-Command python -ErrorAction SilentlyContinue
+    if ($cmdPython -and $cmdPython.Source -and ($cmdPython.Source -notmatch "WindowsApps")) {
+        $pyCandidates.Add($cmdPython.Source)
+    }
+
+    # Procura Python no AppData
+    Get-ChildItem "$env:LOCALAPPDATA\Programs\Python\*\python.exe" -ErrorAction SilentlyContinue | ForEach-Object {
+        $pyCandidates.Add($_.FullName)
+    }
+    Get-ChildItem "$env:LOCALAPPDATA\Python\*\python.exe" -ErrorAction SilentlyContinue | ForEach-Object {
+        $pyCandidates.Add($_.FullName)
+    }
+
+    foreach ($p in $pyCandidates) {
+        if (Test-Path $p) {
+            if ($p -match "apps\\Python") {
+                $env:PYTHONHOME = Split-Path $p -Parent
+            }
+            # Testa se o Python funciona
+            & $p -c "import sys; sys.exit(0)" 2>$null
+            if ($LASTEXITCODE -eq 0) {
+                Write-Host "Executando build_data.py via '$p'..."
+                & $p $pyScript
+                if ($LASTEXITCODE -eq 0) { exit 0 }
+            }
         }
     }
 }
 
 Write-Host "Executando compilação nativa em PowerShell com busca recursiva e vinculação de QA..."
-
-$categorias = [ordered]@{
-    "Restaura$(([char]0xE7))$(([char]0xE3))o" = "restauracao"
-    "Floresta Pronta"                          = "floresta_pronta"
-    "$(([char]0xC1))rea da Propriedade"        = "area_propriedade"
-}
 
 function Get-FileContentShared($path) {
     $fs = [System.IO.FileStream]::new($path, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
@@ -48,7 +64,7 @@ function Get-FileContentShared($path) {
 
 # 1. Pre-scan todos os arquivos de Quadros de Área no PowerShell
 $qaMap = @{}
-$qaFiles = Get-ChildItem (Join-Path $baseDir "Limites de Projetos") -Recurse -Filter "*.geojson" | 
+$qaFiles = Get-ChildItem (Join-Path $baseDir "Limites de Projetos") -Recurse -Filter "*.geojson" -ErrorAction SilentlyContinue | 
     Where-Object { $_.FullName -match "Quadros de ($(([char]0xC1))|a)rea|quadro" }
 
 foreach ($qf in $qaFiles) {
@@ -78,44 +94,62 @@ $sb = [System.Text.StringBuilder]::new()
 
 $firstProj = $true
 
-foreach ($catFolder in $categorias.Keys) {
-    $catKey = $categorias[$catFolder]
-    $catDir = [System.IO.Path]::Combine($baseDir, "Limites de Projetos", $catFolder)
+$projFiles = Get-ChildItem (Join-Path $baseDir "Limites de Projetos") -Recurse -Filter "*.geojson" -ErrorAction SilentlyContinue | 
+    Where-Object { $_.FullName -notmatch "Quadros de ($(([char]0xC1))|a)rea|quadro" } | 
+    Sort-Object Name
 
-    if (-not (Test-Path $catDir)) {
-        Write-Host " [AVISO] Pasta nao encontrada: $catDir"
-        continue
+foreach ($f in $projFiles) {
+    $rawKey = [System.IO.Path]::GetFileNameWithoutExtension($f.Name)
+    $rel = $f.FullName.Substring($baseDir.Length).ToLower()
+    $thisCatKey = "restauracao"
+    if ($rel -match "floresta") {
+        if ($rel -match "mata|nativa|vegetac|averbad|sare|gleba") {
+            $thisCatKey = "floresta_mata_nativa"
+        } else {
+            $thisCatKey = "floresta_pronta"
+        }
+    } elseif ($rel -match "propriedad") {
+        $thisCatKey = "area_propriedade"
+    } else {
+        $thisCatKey = "restauracao"
     }
 
-    $projFiles = Get-ChildItem $catDir -Recurse -Filter "*.geojson" | 
-        Where-Object { $_.FullName -notmatch "Quadros de ($(([char]0xC1))|a)rea|quadro" } | 
-        Sort-Object Name
+    $key = "${thisCatKey}__${rawKey}"
+    $normRaw = $rawKey.ToLower().Trim()
+    $baseRaw = ($normRaw -split ' - ')[0].Trim()
+    try {
+        $content = (Get-FileContentShared $f.FullName).Trim()
 
-    foreach ($f in $projFiles) {
-        $rawKey = [System.IO.Path]::GetFileNameWithoutExtension($f.Name)
-        $thisCatKey = $catKey
-        if ($catKey -eq "floresta_pronta" -and ($f.FullName -match "mata|nativa|vegetac")) {
-            $thisCatKey = "floresta_mata_nativa"
-        }
-        $key = "${thisCatKey}__${rawKey}"
-        $normRaw = $rawKey.ToLower().Trim()
-        try {
-            $content = (Get-FileContentShared $f.FullName).Trim()
-
-            if ($thisCatKey -eq "floresta_pronta" -and $qaMap.ContainsKey($normRaw)) {
-                $qaStr = $qaMap[$normRaw]
-                $content = $content -replace '"type"\s*:\s*"FeatureCollection"', "`"type`":`"FeatureCollection`",`"categoria`":`"$thisCatKey`",`"quadro_area`":$qaStr"
+        $matchedQa = $null
+        if ($thisCatKey -in @("floresta_pronta", "floresta_mata_nativa")) {
+            if ($qaMap.ContainsKey($normRaw)) {
+                $matchedQa = $qaMap[$normRaw]
+            } elseif ($qaMap.ContainsKey($baseRaw)) {
+                $matchedQa = $qaMap[$baseRaw]
             } else {
-                $content = $content -replace '"type"\s*:\s*"FeatureCollection"', "`"type`":`"FeatureCollection`",`"categoria`":`"$thisCatKey`""
+                $cleanRaw = $baseRaw -replace '^(faz\.|fazenda|sitio)\s*', '' -replace '\s+', ''
+                foreach ($qk in $qaMap.Keys) {
+                    $cleanQk = $qk -replace '^(faz\.|fazenda|sitio)\s*', '' -replace '\s+', ''
+                    if ($cleanRaw -eq $cleanQk) {
+                        $matchedQa = $qaMap[$qk]
+                        break
+                    }
+                }
             }
-
-            if (-not $firstProj) { [void]$sb.Append(",") }
-            $firstProj = $false
-            [void]$sb.Append("`"$key`":$content")
-            Write-Host " [OK] [$catFolder] $rawKey ($key)"
-        } catch {
-            Write-Host " [ERRO] Falha ao carregar $($key): $_"
         }
+
+        if ($matchedQa) {
+            $content = $content -replace '"type"\s*:\s*"FeatureCollection"', "`"type`":`"FeatureCollection`",`"categoria`":`"$thisCatKey`",`"quadro_area`":$matchedQa"
+        } else {
+            $content = $content -replace '"type"\s*:\s*"FeatureCollection"', "`"type`":`"FeatureCollection`",`"categoria`":`"$thisCatKey`""
+        }
+
+        if (-not $firstProj) { [void]$sb.Append(",") }
+        $firstProj = $false
+        [void]$sb.Append("`"$key`":$content")
+        Write-Host " [OK] [$thisCatKey] $rawKey ($key)"
+    } catch {
+        Write-Host " [ERRO] Falha ao carregar $($key): $_"
     }
 }
 

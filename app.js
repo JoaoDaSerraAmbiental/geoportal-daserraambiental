@@ -998,8 +998,15 @@ document.addEventListener('DOMContentLoaded', () => {
     map.on('zoomend', () => {
         updateMuniPointerEvents();
         if (!isMuniZoomAllowed()) {
-            map.closeTooltip();
-            map.closePopup();
+            try {
+                if (map._tooltip) map.closeTooltip(map._tooltip);
+                else if (typeof map.eachLayer === 'function') {
+                    map.eachLayer((l) => { if (l && typeof l.closeTooltip === 'function') l.closeTooltip(); });
+                }
+            } catch (e) {}
+            try {
+                map.closePopup();
+            } catch (e) {}
             if (outrosLayers['municipios_SP'] && outrosLayers['municipios_SP'].layer) {
                 outrosLayers['municipios_SP'].layer.eachLayer((l) => {
                     outrosLayers['municipios_SP'].layer.resetStyle(l);
