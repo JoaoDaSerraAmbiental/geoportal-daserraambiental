@@ -176,15 +176,17 @@ if (Test-Path $outrosDir) {
 
 [System.IO.File]::WriteAllText($outPath, $sb.ToString(), [System.Text.Encoding]::UTF8)
 
-# Update cache buster timestamp in index.html
+# Update cache buster timestamp and last-update date in index.html
 $htmlPath = Join-Path $baseDir "index.html"
 if (Test-Path $htmlPath) {
     $ts = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
+    $todayStr = Get-Date -Format "dd/MM/yyyy"
     $htmlContent = Get-Content $htmlPath -Raw -Encoding UTF8
     $newHtml = $htmlContent -replace 'geojson_data\.js(\?v=[^\s"''\>]+)?', "geojson_data.js?v=$ts"
+    $newHtml = $newHtml -replace '(?<=class="last-update-date">)[^<]+', $todayStr
     if ($newHtml -ne $htmlContent) {
         [System.IO.File]::WriteAllText($htmlPath, $newHtml, [System.Text.Encoding]::UTF8)
-        Write-Host " [CACHE-BUSTER] index.html atualizado com v=$ts"
+        Write-Host " [CACHE-BUSTER] index.html atualizado com v=$ts e data $todayStr"
     }
 }
 

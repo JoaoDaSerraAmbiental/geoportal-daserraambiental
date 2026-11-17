@@ -197,20 +197,23 @@ def build_dataset():
     with open(out_path, 'w', encoding='utf-8') as jsf:
         jsf.write('window.GEOPORTAL_DATA = ' + json.dumps(geoportal_data, ensure_ascii=False) + ';')
 
-    # Update cache-buster timestamp in index.html so browsers instantly fetch the latest geojson_data.js
+    # Update cache-buster timestamp and last-update date in index.html so browsers instantly fetch latest data
     html_path = os.path.join(base_dir, 'index.html')
     if os.path.exists(html_path):
         try:
             import re
             import time
+            from datetime import datetime
             timestamp = int(time.time())
+            today_str = datetime.now().strftime("%d/%m/%Y")
             with open(html_path, 'r', encoding='utf-8') as hf:
                 html_content = hf.read()
             new_html = re.sub(r'geojson_data\.js(\?v=[^\s"\'\>]+)?', f'geojson_data.js?v={timestamp}', html_content)
+            new_html = re.sub(r'(?<=class="last-update-date">)[^<]+', today_str, new_html)
             if new_html != html_content:
                 with open(html_path, 'w', encoding='utf-8') as hf:
                     hf.write(new_html)
-                print(f"[CACHE-BUSTER] index.html atualizado com v={timestamp}")
+                print(f"[CACHE-BUSTER] index.html atualizado com v={timestamp} e data {today_str}")
         except Exception as e:
             print(f"[AVISO] Falha ao atualizar cache-buster em index.html: {e}")
 

@@ -4315,4 +4315,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.MeasureTool = MeasureTool;
     MeasureTool.init();
+
+    // ----------------------------------------------------------------------
+    // Inicialização da Data da Última Atualização no Rodapé da Sidebar
+    // ----------------------------------------------------------------------
+    function initLastUpdateDate() {
+        try {
+            const rawMod = document.lastModified;
+            if (rawMod) {
+                const d = new Date(rawMod);
+                if (!isNaN(d.getTime()) && d.getFullYear() >= 2024) {
+                    const day = String(d.getDate()).padStart(2, '0');
+                    const month = String(d.getMonth() + 1).padStart(2, '0');
+                    const year = d.getFullYear();
+                    const dateFormatted = `${day}/${month}/${year}`;
+                    document.querySelectorAll('.last-update-date').forEach(el => {
+                        el.textContent = dateFormatted;
+                    });
+                }
+            }
+        } catch (e) {
+            console.warn('Erro ao ler data de última modificação:', e);
+        }
+    }
+    initLastUpdateDate();
 });

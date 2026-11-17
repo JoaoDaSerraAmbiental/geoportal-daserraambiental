@@ -19,7 +19,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
     
     <!-- Custom Styles -->
-    <link rel="stylesheet" href="styles.css?v=37">
+    <link rel="stylesheet" href="styles.css?v=38">
 </head>
 <body>
     <div id="app-container">
@@ -218,20 +218,25 @@
 
             <!-- Sidebar Footer / Statistics -->
             <div class="sidebar-footer">
-                <div class="stats-item" title="Área total de projetos de Restauração - Projetos visíveis">
-                    <i class="fa-solid fa-seedling" style="color: #16a34a; font-size: 0.95rem;"></i>
-                    <div>
-                        <div style="font-size: 0.68rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em;">Restauração</div>
-                        <strong id="restauracao-area-display" style="color: var(--primary-color); font-size: 0.85rem; font-weight: 700;">0,00 ha</strong>
+                <div class="sidebar-footer-stats">
+                    <div class="stats-item" title="Área total de projetos de Restauração - Projetos visíveis">
+                        <i class="fa-solid fa-seedling" style="color: #16a34a; font-size: 0.95rem;"></i>
+                        <div>
+                            <div style="font-size: 0.68rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em;">Restauração</div>
+                            <strong id="restauracao-area-display" style="color: var(--primary-color); font-size: 0.85rem; font-weight: 700;">0,00 ha</strong>
+                        </div>
+                    </div>
+                    <div style="width: 1px; height: 26px; background-color: var(--border-color);"></div>
+                    <div class="stats-item" title="Área total de Floresta Pronta - Banco de Áreas visível">
+                        <i class="fa-solid fa-tree" style="color: #01a300; font-size: 0.95rem;"></i>
+                        <div>
+                            <div style="font-size: 0.68rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em;">Banco de Áreas</div>
+                            <strong id="floresta-area-display" style="color: var(--primary-color); font-size: 0.85rem; font-weight: 700;">0,00 ha</strong>
+                        </div>
                     </div>
                 </div>
-                <div style="width: 1px; height: 26px; background-color: var(--border-color);"></div>
-                <div class="stats-item" title="Área total de Floresta Pronta - Banco de Áreas visível">
-                    <i class="fa-solid fa-tree" style="color: #01a300; font-size: 0.95rem;"></i>
-                    <div>
-                        <div style="font-size: 0.68rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em;">Banco de Áreas</div>
-                        <strong id="floresta-area-display" style="color: var(--primary-color); font-size: 0.85rem; font-weight: 700;">0,00 ha</strong>
-                    </div>
+                <div class="sidebar-last-update">
+                    Última atualização: <span class="last-update-date">17/11/2026</span>
                 </div>
             </div>
             </div>
@@ -264,20 +269,25 @@
 
                 <!-- Rodapé de Estatísticas de Municípios -->
                 <div class="sidebar-footer">
-                    <div class="stats-item" title="Total de municípios com projetos atendidos">
-                        <i class="fa-solid fa-city" style="color: var(--primary-color); font-size: 0.95rem;"></i>
-                        <div>
-                            <div style="font-size: 0.68rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em;">Municípios</div>
-                            <strong id="muni-count-display" style="color: var(--primary-color); font-size: 0.85rem; font-weight: 700;">0</strong>
+                    <div class="sidebar-footer-stats">
+                        <div class="stats-item" title="Total de municípios com projetos atendidos">
+                            <i class="fa-solid fa-city" style="color: var(--primary-color); font-size: 0.95rem;"></i>
+                            <div>
+                                <div style="font-size: 0.68rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em;">Municípios</div>
+                                <strong id="muni-count-display" style="color: var(--primary-color); font-size: 0.85rem; font-weight: 700;">0</strong>
+                            </div>
+                        </div>
+                        <div style="width: 1px; height: 26px; background-color: var(--border-color);"></div>
+                        <div class="stats-item" title="Total de projetos monitorados nestes municípios">
+                            <i class="fa-solid fa-seedling" style="color: #16a34a; font-size: 0.95rem;"></i>
+                            <div>
+                                <div style="font-size: 0.68rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em;">Projetos</div>
+                                <strong id="muni-projects-count-display" style="color: var(--primary-color); font-size: 0.85rem; font-weight: 700;">0</strong>
+                            </div>
                         </div>
                     </div>
-                    <div style="width: 1px; height: 26px; background-color: var(--border-color);"></div>
-                    <div class="stats-item" title="Total de projetos monitorados nestes municípios">
-                        <i class="fa-solid fa-seedling" style="color: #16a34a; font-size: 0.95rem;"></i>
-                        <div>
-                            <div style="font-size: 0.68rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em;">Projetos</div>
-                            <strong id="muni-projects-count-display" style="color: var(--primary-color); font-size: 0.85rem; font-weight: 700;">0</strong>
-                        </div>
+                    <div class="sidebar-last-update">
+                        Última atualização: <span class="last-update-date">17/11/2026</span>
                     </div>
                 </div>
             </div>
@@ -481,12 +491,12 @@
     <script src="https://unpkg.com/@turf/turf@6.5.0/turf.min.js"></script>
 
     <!-- Embedded GeoJSON Data Package -->
-    <script src="geojson_data.js?v=1793010807"></script>
+    <script src="geojson_data.js?v=1794942880"></script>
 
     <!-- Municipal Basins Data Package -->
     <script src="municipios_bacias_data.js?v=18"></script>
 
     <!-- Custom Application Logic -->
-    <script src="app.js?v=45"></script>
+    <script src="app.js?v=46"></script>
 </body>
 </html>
