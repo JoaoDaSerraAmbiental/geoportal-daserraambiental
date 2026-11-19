@@ -2,9 +2,10 @@
 "type": "FeatureCollection",
 "name": "QA Faz",
 "features": [
-{ "type": "Feature", "properties": { "Tema": "Propriedade", "Área (ha)": 716.44, "%": 100.0 }, "geometry": null },
-{ "type": "Feature", "properties": { "Tema": "Reserva Legal", "Área (ha)": 143.29, "%": 20.0 }, "geometry": null },
-{ "type": "Feature", "properties": { "Tema": "Vegetação Nativa", "Área (ha)": 588.16, "%": 82.09 }, "geometry": null },
-{ "type": "Feature", "properties": { "Tema": "Vegetação Excedente", "Área (ha)": 444.87, "%": 62.09 }, "geometry": null }
+{"type":"Feature","properties":{"Tema":"Propriedade","Área (ha)":909.86,"%":100.0},"geometry":null},
+{"type":"Feature","properties":{"Tema":"Reserva Legal Obrigatória","Área (ha)":181.97,"%":20.0},"geometry":null},
+{"type":"Feature","properties":{"Tema":"Vegetação Nativa","Área (ha)":716.26,"%":78.72},"geometry":null},
+{"type":"Feature","properties":{"Tema":"Vegetação Excedente","Área (ha)":534.29,"%":58.72},"geometry":null},
+{"type":"Feature","properties":{"Tema":"Reserva Legal CAR","Área (ha)":732.26,"%":80.48},"geometry":null}
 ]
 }

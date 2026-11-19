@@ -1,0 +1,11 @@
+{
+"type": "FeatureCollection",
+"name": "QA Sítio Bocaína da Paineira",
+"features": [
+{"type":"Feature","properties":{"Tema":"Propriedade","Área (ha)":39.7,"%":100.0},"geometry":null},
+{"type":"Feature","properties":{"Tema":"Reserva Legal Obrigatória","Área (ha)":7.94,"%":20.0},"geometry":null},
+{"type":"Feature","properties":{"Tema":"Vegetação Nativa","Área (ha)":36.71,"%":92.47},"geometry":null},
+{"type":"Feature","properties":{"Tema":"Excedente de Vegetação","Área (ha)":28.77,"%":72.47},"geometry":null},
+{"type":"Feature","properties":{"Tema":"Reserva Legal CAR","Área (ha)":8.13,"%":20.48},"geometry":null}
+]
+}
