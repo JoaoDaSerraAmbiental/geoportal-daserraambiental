@@ -1,0 +1,11 @@
+{
+"type": "FeatureCollection",
+"name": "QA Sítio do Pico",
+"features": [
+{"type":"Feature","properties":{"Tema":"Propriedade","Área (ha)":21.15,"%":100.0},"geometry":null},
+{"type":"Feature","properties":{"Tema":"Reserva Legal Obrigatória","Área (ha)":4.23,"%":20.0},"geometry":null},
+{"type":"Feature","properties":{"Tema":"Vegetação Nativa","Área (ha)":20.42,"%":96.55},"geometry":null},
+{"type":"Feature","properties":{"Tema":"Vegetação Excedente","Área (ha)":16.19,"%":76.55},"geometry":null},
+{"type":"Feature","properties":{"Tema":"Reserva Legal CAR","Área (ha)":20.06,"%":94.85},"geometry":null}
+]
+}

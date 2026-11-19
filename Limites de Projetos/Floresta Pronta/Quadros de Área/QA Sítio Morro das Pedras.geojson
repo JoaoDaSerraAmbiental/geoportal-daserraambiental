@@ -1,0 +1,11 @@
+{
+"type": "FeatureCollection",
+"name": "QA Sítio Morro das Pedras",
+"features": [
+{"type":"Feature","properties":{"Tema":"Propriedade","Área (ha)":6.79,"%":100.0},"geometry":null},
+{"type":"Feature","properties":{"Tema":"Reserva Legal Obrigatória","Área (ha)":1.29,"%":20.0},"geometry":null},
+{"type":"Feature","properties":{"Tema":"Vegetação Nativa","Área (ha)":5.49,"%":80.85},"geometry":null},
+{"type":"Feature","properties":{"Tema":"Vegetação Excedente","Área (ha)":4.2,"%":60.85},"geometry":null},
+{"type":"Feature","properties":{"Tema":"Reserva Legal CAR","Área (ha)":1.5,"%":22.09},"geometry":null}
+]
+}

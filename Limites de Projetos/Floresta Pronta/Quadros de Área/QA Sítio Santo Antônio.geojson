@@ -1,0 +1,11 @@
+{
+"type": "FeatureCollection",
+"name": "QA Sítio Santo Antônio",
+"features": [
+{"type":"Feature","properties":{"Tema":"Propriedade","Área (ha)":16.94,"%":100.0},"geometry":null},
+{"type":"Feature","properties":{"Tema":"Reserva Legal Obrigatória","Área (ha)":3.39,"%":20.0},"geometry":null},
+{"type":"Feature","properties":{"Tema":"Vegetação Nativa","Área (ha)":10.26,"%":60.57},"geometry":null},
+{"type":"Feature","properties":{"Tema":"Vegetação Excedente","Área (ha)":6.87,"%":40.57},"geometry":null},
+{"type":"Feature","properties":{"Tema":"Reserva Legal CAR","Área (ha)":3.93,"%":23.2},"geometry":null}
+]
+}

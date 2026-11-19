@@ -1,0 +1,11 @@
+{
+"type": "FeatureCollection",
+"name": "QA Sítio Bico de Jacaré",
+"features": [
+{"type":"Feature","properties":{"Tema":"Propriedade","Área (ha)":0.88,"%":100.0},"geometry":null},
+{"type":"Feature","properties":{"Tema":"Reserva Legal Obrigatória","Área (ha)":0.18,"%":20.0},"geometry":null},
+{"type":"Feature","properties":{"Tema":"Vegetação Nativa","Área (ha)":0.78,"%":88.64},"geometry":null},
+{"type":"Feature","properties":{"Tema":"Vegetação Excedente","Área (ha)":0.6,"%":68.64},"geometry":null},
+{"type":"Feature","properties":{"Tema":"Reserva Legal CAR","Área (ha)":0.79,"%":89.77},"geometry":null}
+]
+}
