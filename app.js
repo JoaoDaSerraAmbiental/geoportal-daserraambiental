@@ -64,9 +64,17 @@ document.addEventListener('DOMContentLoaded', () => {
     map.getPane('averbadaPane').style.zIndex = 395;
     map.getPane('averbadaPane').style.pointerEvents = 'auto';
 
+    map.createPane('florestaOutrasPane');
+    map.getPane('florestaOutrasPane').style.zIndex = 380;
+    map.getPane('florestaOutrasPane').style.pointerEvents = 'auto';
+
     map.createPane('projetosPane');
     map.getPane('projetosPane').style.zIndex = 410;
     map.getPane('projetosPane').style.pointerEvents = 'auto';
+
+    map.createPane('florestaLimitePane');
+    map.getPane('florestaLimitePane').style.zIndex = 420;
+    map.getPane('florestaLimitePane').style.pointerEvents = 'auto';
 
     map.createPane('measurePane');
     map.getPane('measurePane').style.zIndex = 600;
@@ -610,10 +618,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         let paneName = 'projetosPane';
-        if (isPropriedade) paneName = 'propriedadePane';
+        if (cat === 'floresta_pronta') paneName = 'florestaLimitePane';
+        else if (cat === 'area_propriedade') paneName = 'propriedadePane';
         else if (isAverbada) paneName = 'averbadaPane';
         else if (isMataNativa) paneName = 'vegetacaoPane';
-        else if (cat === 'floresta_outras') paneName = 'projetosPane';
+        else if (cat === 'floresta_outras') paneName = 'florestaOutrasPane';
 
         const featureItems = [];
         let featCounter = 0;
