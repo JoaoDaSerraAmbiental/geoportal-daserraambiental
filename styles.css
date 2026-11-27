@@ -1802,38 +1802,47 @@ body, html {
 }
 
 /* ==========================================================================
-   Painel Flutuante Lateral: Camadas Base & Outros Limites
+   Aba Lateral Direita (Docked): Camadas Base & Outros Limites
    ========================================================================== */
 
 .basemap-floating-right {
     position: absolute;
-    right: 14px;
+    right: 0;
     top: 50%;
     transform: translateY(-50%);
     z-index: 999;
-    background: rgba(255, 255, 255, 0.92);
+    background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(20px) saturate(180%);
     -webkit-backdrop-filter: blur(20px) saturate(180%);
-    border: 1px solid rgba(255, 255, 255, 0.8);
-    border-radius: var(--radius-lg);
-    padding: 12px;
-    box-shadow: var(--shadow-float);
+    border: 1px solid rgba(226, 232, 240, 0.9);
+    border-right: none;
+    border-top-left-radius: 16px;
+    border-bottom-left-radius: 16px;
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+    padding: 12px 14px;
+    box-shadow: -4px 0 20px rgba(0, 0, 0, 0.12), -1px 0 4px rgba(0, 0, 0, 0.05);
     display: flex;
     flex-direction: column;
     gap: 10px;
-    width: 254px;
+    width: 260px;
     max-height: 84vh;
     overflow-y: auto;
     overflow-x: hidden;
     scrollbar-width: thin;
     scrollbar-color: var(--slate-300) var(--slate-100);
-    transition: width var(--transition-fast), padding var(--transition-fast), box-shadow var(--transition-fast);
+    transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1), 
+                padding 0.25s cubic-bezier(0.4, 0, 0.2, 1), 
+                box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+                border-radius 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+                transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .basemap-floating-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 10px;
     cursor: pointer;
     user-select: none;
     padding-bottom: 6px;
@@ -1853,6 +1862,7 @@ body, html {
     margin: 0;
     padding: 0;
     border-bottom: none;
+    white-space: nowrap;
 }
 
 .basemap-floating-title i {
@@ -1890,20 +1900,33 @@ body, html {
     gap: 10px;
 }
 
-/* Estado Minimizado */
+/* Estado Minimizado (Aba grudada na borda direita) */
 .basemap-floating-right.minimized {
-    padding: 8px 12px;
+    padding: 9px 14px 9px 12px;
     gap: 0;
-    width: 190px;
+    width: auto;
     max-height: none;
     overflow: hidden;
-    box-shadow: var(--shadow-md);
-    background: rgba(255, 255, 255, 0.94);
+    border-top-left-radius: 20px;
+    border-bottom-left-radius: 20px;
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+    border-right: none;
+    box-shadow: -3px 0 14px rgba(0, 0, 0, 0.1), -1px 0 3px rgba(0, 0, 0, 0.04);
+    background: rgba(255, 255, 255, 0.95);
+    cursor: pointer;
+}
+
+.basemap-floating-right.minimized:hover {
+    background: #ffffff;
+    box-shadow: -4px 0 18px rgba(22, 78, 63, 0.18);
+    transform: translateY(-50%) translateX(-3px);
 }
 
 .basemap-floating-right.minimized .basemap-floating-header {
     padding-bottom: 0;
     border-bottom: none;
+    gap: 8px;
 }
 
 .basemap-floating-right.minimized .basemap-chevron {
