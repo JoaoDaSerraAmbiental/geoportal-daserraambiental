@@ -1,4 +1,4 @@
-# ==========================================================
+﻿# ==========================================================
 # Gerador de Pacote GeoJSON (build_data.ps1)
 # Da Serra Ambiental
 # ==========================================================
@@ -103,7 +103,9 @@ foreach ($f in $projFiles) {
     $rel = $f.FullName.Substring($baseDir.Length).ToLower()
     $thisCatKey = "restauracao"
     if ($rel -match "floresta") {
-        if ($rel -match "mata|nativa|vegetac|averbad|sare|gleba") {
+        if ($rel -match "outra" -or $rawKey -match "(?i)linhao|linhoes") {
+            $thisCatKey = "floresta_outras"
+        } elseif ($rel -match "mata|nativa|vegetac|averbad|sare|gleba") {
             $thisCatKey = "floresta_mata_nativa"
         } else {
             $thisCatKey = "floresta_pronta"
@@ -121,7 +123,7 @@ foreach ($f in $projFiles) {
         $content = (Get-FileContentShared $f.FullName).Trim()
 
         $matchedQa = $null
-        if ($thisCatKey -in @("floresta_pronta", "floresta_mata_nativa")) {
+        if ($thisCatKey -in @("floresta_pronta", "floresta_mata_nativa", "floresta_outras")) {
             if ($qaMap.ContainsKey($normRaw)) {
                 $matchedQa = $qaMap[$normRaw]
             } elseif ($qaMap.ContainsKey($baseRaw)) {

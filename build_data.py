@@ -23,6 +23,8 @@ def get_category_key(folder_name, file_name=""):
     norm = normalize_text(folder_name)
     norm_file = normalize_text(file_name)
     if "floresta" in norm:
+        if any(k in norm for k in ("outras", "outra")) or any(k in norm_file for k in ("linhao", "linhoes")):
+            return "floresta_outras"
         if any(k in norm for k in ("mata", "nativa", "vegetac", "averbad", "sare", "gleba")) or any(k in norm_file for k in ("averbad", "sare", "gleba")):
             return "floresta_mata_nativa"
         return "floresta_pronta"
@@ -156,7 +158,7 @@ def build_dataset():
                             data['categoria'] = cat_key
                             
                             # Attach matching Quadro de Área data if present (apenas para Floresta Pronta)
-                            if cat_key in ("floresta_pronta", "floresta_mata_nativa"):
+                            if cat_key in ("floresta_pronta", "floresta_mata_nativa", "floresta_outras"):
                                 norm_raw = normalize_text(raw_key)
                                 base_raw = norm_raw.split(' - ')[0].strip()
                                 matched_qa = qa_data_map.get(norm_raw) or qa_data_map.get(base_raw)

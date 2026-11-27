@@ -6,6 +6,7 @@
 {"type":"Feature","properties":{"Tema":"Reserva Legal (RL)","Área (ha)":23.5,"%":20.0},"geometry":null},
 {"type":"Feature","properties":{"Tema":"Vegetação Nativa","Área (ha)":48.08,"%":40.93},"geometry":null},
 {"type":"Feature","properties":{"Tema":"Vegetação Excedente","Área (ha)":24.58,"%":20.93},"geometry":null},
-{"type":"Feature","properties":{"Tema":"Reserva Legal CAR","Área (ha)":19.64,"%":16.72},"geometry":null}
+{"type":"Feature","properties":{"Tema":"Reserva Legal CAR","Área (ha)":19.64,"%":16.72},"geometry":null},
+{"type":"Feature","properties":{"Tema":"Linhas de transmissão","Área (ha)":3.04,"%":2.59},"geometry":null}
 ]
 }

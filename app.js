@@ -172,6 +172,7 @@ document.addEventListener('DOMContentLoaded', () => {
         "floresta_mata_nativa__Sitio Sao Benedito": "Sítio São Benedito",
         "floresta_mata_nativa__REDS3": "REDS 3",
         "floresta_mata_nativa__REDS3 - Áreas Averbadas": "REDS 3 - Áreas Averbadas",
+        "floresta_outras__Sitio Marilia Linhoes": "Linhas de transmissão",
 
         // Restauração
         "restauracao__Acacio_ind_2015": "Acácio - Ind. (2015)",
@@ -285,7 +286,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const PROJECT_DISPLAY_NAMES_NORM = {};
     for (const [k, v] of Object.entries(PROJECT_DISPLAY_NAMES)) {
         PROJECT_DISPLAY_NAMES_NORM[normalizeLookupKey(k)] = v;
-        const cleanK = k.replace(/^(restauracao|floresta_pronta|floresta_mata_nativa|area_propriedade)__/, '');
+        const cleanK = k.replace(/^(restauracao|floresta_pronta|floresta_mata_nativa|floresta_outras|area_propriedade)__/, '');
         PROJECT_DISPLAY_NAMES_NORM[normalizeLookupKey(cleanK)] = v;
     }
 
@@ -368,7 +369,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // 1. Busca direta na tabela exata
         if (PROJECT_DISPLAY_NAMES[key]) return PROJECT_DISPLAY_NAMES[key];
 
-        const clean = key.replace(/^(restauracao|floresta_pronta|floresta_mata_nativa|area_propriedade)__/, '').trim();
+        const clean = key.replace(/^(restauracao|floresta_pronta|floresta_mata_nativa|floresta_outras|area_propriedade)__/, '').trim();
         if (PROJECT_DISPLAY_NAMES[clean]) return PROJECT_DISPLAY_NAMES[clean];
 
         // 2. Busca pela chave normalizada (independe de acentuação, espaços e símbolos)
@@ -414,6 +415,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let cat = geoData.projetos[key].categoria;
         if (!cat) {
             if (key.startsWith('area_propriedade__')) cat = 'area_propriedade';
+            else if (key.startsWith('floresta_outras__')) cat = 'floresta_outras';
             else if (key.startsWith('floresta_mata_nativa__')) cat = 'floresta_mata_nativa';
             else if (key.startsWith('floresta_pronta__')) cat = 'floresta_pronta';
             else cat = 'restauracao';
@@ -426,6 +428,7 @@ document.addEventListener('DOMContentLoaded', () => {
         restauracao:           '#29ff1e',  // verde claro
         floresta_pronta:       '#dc2626',  // vermelho (limites da propriedade em floresta pronta)
         floresta_mata_nativa:  '#15803d',  // verde mata nativa / florestal
+        floresta_outras:       '#ffffff',  // branco tracejado (linhas de transmissão)
         area_propriedade:      '#dc2626'   // vermelho
     };
 
@@ -567,6 +570,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 fillOpacity: opacity !== undefined ? opacity : 0.55
             };
         }
+        if (category === 'floresta_outras') {
+            return {
+                color: '#ffffff',
+                weight: 2.2,
+                opacity: 0.95,
+                dashArray: '6, 6',
+                fillColor: '#ffffff',
+                fillOpacity: opacity !== undefined ? (opacity * 0.3) : 0.12
+            };
+        }
         return {
             color: c,
             weight: 2.5,
@@ -600,6 +613,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (isPropriedade) paneName = 'propriedadePane';
         else if (isAverbada) paneName = 'averbadaPane';
         else if (isMataNativa) paneName = 'vegetacaoPane';
+        else if (cat === 'floresta_outras') paneName = 'projetosPane';
 
         const featureItems = [];
         let featCounter = 0;
@@ -639,6 +653,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         l.setStyle({ weight: 2.8, color: '#ffffff', fillOpacity: 0.78 });
                     } else if (isMataNativa) {
                         l.setStyle({ weight: 1.8, fillOpacity: 0.75 });
+                    } else if (cat === 'floresta_outras') {
+                        l.setStyle({ weight: 3.2, color: '#ffffff', fillOpacity: 0.35 });
                     } else {
                         l.setStyle({ weight: 4, fillOpacity: 0.7 });
                         if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
@@ -714,7 +730,7 @@ document.addEventListener('DOMContentLoaded', () => {
             .toLowerCase()
             .normalize('NFD')
             .replace(/[\u0300-\u036f]/g, '')
-            .replace(/^(floresta_pronta|floresta_mata_nativa)__/, '')
+            .replace(/^(floresta_pronta|floresta_mata_nativa|floresta_outras)__/, '')
             .replace(/^faz\.\s*/, '')
             .replace(/^fazenda\s*/, '')
             .replace(/^sitio\s*/, '')
@@ -760,15 +776,34 @@ document.addEventListener('DOMContentLoaded', () => {
         return matches;
     }
 
-    // Link Floresta Pronta (Limites de Propriedades) and Floresta Mata Nativa (Vegetação + Áreas Averbadas / SAREs)
+    // Function to find all matching Floresta Outras keys (ex: Linhas de transmissão / Linhões)
+    function findMatchingFlorestaOutrasKeys(propKey) {
+        const rawName = propKey.replace(/^floresta_pronta__/, '').trim();
+        const targetNorm = normalizeFlorestaMatchName(rawName);
+        const matches = [];
+
+        for (const k of Object.keys(projectLayers)) {
+            if (k.startsWith('floresta_outras__') && !matches.includes(k)) {
+                const kNorm = normalizeFlorestaMatchName(k);
+                if (kNorm === targetNorm || kNorm.startsWith(targetNorm + ' ') || kNorm.startsWith(targetNorm + '-')) {
+                    matches.push(k);
+                }
+            }
+        }
+        return matches;
+    }
+
+    // Link Floresta Pronta (Limites de Propriedades) and Floresta Mata Nativa / Outras (Vegetação, Linhas de transmissão, SAREs)
     Object.keys(projectLayers).forEach((key) => {
         if (key.startsWith('floresta_pronta__')) {
             const propItem = projectLayers[key];
             const mataKeys = findMatchingFlorestaMataKeys(key);
-            if (mataKeys.length > 0) {
-                propItem.linkedKeys = mataKeys;
-                propItem.linkedKey = mataKeys[0];
-                mataKeys.forEach(mKey => {
+            const outrasKeys = findMatchingFlorestaOutrasKeys(key);
+            const allLinked = [...mataKeys, ...outrasKeys];
+            if (allLinked.length > 0) {
+                propItem.linkedKeys = allLinked;
+                propItem.linkedKey = mataKeys[0] || outrasKeys[0];
+                allLinked.forEach(mKey => {
                     if (projectLayers[mKey]) {
                         projectLayers[mKey].linkedKey = key;
                     }
@@ -1142,6 +1177,33 @@ document.addEventListener('DOMContentLoaded', () => {
                 `;
             }).join('');
 
+            const outrasRowsHtml = (item.linkedKeys || [])
+                .filter(lk => projectLayers[lk] && projectLayers[lk].categoria === 'floresta_outras')
+                .map(oKey => {
+                    const oItem = projectLayers[oKey];
+                    if (!oItem) return '';
+                    const isLinhoes = oKey.toLowerCase().includes('linhao') || oKey.toLowerCase().includes('linhoes') || oKey.toLowerCase().includes('transmissao');
+                    const label = isLinhoes ? 'Linhas de transmissão' : (oItem.name || 'Outras Camadas');
+                    const oAreaStr = oItem.areaHa
+                        ? `${parseFloat(oItem.areaHa).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ha • ${label}`
+                        : label;
+                    return `
+                        <div class="sublayer-row">
+                            <div class="sublayer-row-left">
+                                <input type="checkbox" class="sublayer-checkbox sublayer-toggle-outras" data-prop-key="${key}" data-outras-key="${oKey}" ${oItem.visible ? 'checked' : ''}>
+                                <div class="sublayer-badge" style="background-color: #1e293b; border: 2px dashed #ffffff; box-sizing: border-box;" title="Linhas brancas tracejadas"></div>
+                                <div class="sublayer-info">
+                                    <div class="sublayer-title" title="${label} (${item.name})">${label}</div>
+                                    <div class="sublayer-meta">${oAreaStr}</div>
+                                </div>
+                            </div>
+                            <button type="button" class="btn-icon btn-sublayer-zoom" data-zoom-type="outras" data-prop-key="${key}" data-outras-key="${oKey}" title="Aproximar zoom em ${label.toLowerCase()}">
+                                <i class="fa-solid fa-crosshairs"></i>
+                            </button>
+                        </div>
+                    `;
+                }).join('');
+
             let saresBlockHtml = '';
             if (allSares.length > 0) {
                 const sareItemsHtml = allSares.map((s) => `
@@ -1204,6 +1266,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         </button>
                     </div>
                     ${mataRowsHtml}
+                    ${outrasRowsHtml}
                     ${saresBlockHtml}
                 </div>
             `;
@@ -1252,8 +1315,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const item = projectLayers[key];
         const cat  = projectCategory[key] || 'restauracao';
 
-        // Camadas de floresta_mata_nativa ficam incorporadas diretamente na camada floresta_pronta correspondente
-        if (cat === 'floresta_mata_nativa') {
+        // Camadas de floresta_mata_nativa e floresta_outras ficam incorporadas diretamente na camada floresta_pronta correspondente
+        if (cat === 'floresta_mata_nativa' || cat === 'floresta_outras') {
             return;
         }
 
@@ -1488,7 +1551,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!propItem) return;
 
         const linkedKeys = propItem.linkedKeys || (propItem.linkedKey ? [propItem.linkedKey] : []);
-        const baseMataItems = linkedKeys.map(lk => projectLayers[lk]).filter(x => x && !x.isAverbada);
+        const baseMataItems = linkedKeys.map(lk => projectLayers[lk]).filter(x => x && !x.isAverbada && x.categoria !== 'floresta_outras');
+        const outrasItems = linkedKeys.map(lk => projectLayers[lk]).filter(x => x && x.categoria === 'floresta_outras');
         const avItems = linkedKeys.map(lk => projectLayers[lk]).filter(x => x && x.isAverbada);
 
         const allSareStates = [];
@@ -1508,6 +1572,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const allStates = [
             Boolean(propItem.boundaryVisible !== false),
             ...baseMataItems.map(m => Boolean(m.visible)),
+            ...outrasItems.map(o => Boolean(o.visible)),
             ...allSareStates
         ];
 
@@ -1693,6 +1758,26 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        // 3b. Sub-aba: Outras Camadas (ex: Linhas de transmissão)
+        if (target.classList.contains('sublayer-toggle-outras')) {
+            const propKey = target.dataset.propKey;
+            const outrasKey = target.dataset.outrasKey;
+            const isChecked = target.checked;
+            const outrasItem = projectLayers[outrasKey];
+            if (outrasItem) {
+                outrasItem.visible = isChecked;
+                if (isChecked) {
+                    if (!map.hasLayer(outrasItem.layer)) map.addLayer(outrasItem.layer);
+                } else {
+                    if (map.hasLayer(outrasItem.layer)) map.removeLayer(outrasItem.layer);
+                }
+                syncFlorestaPropertyParentState(propKey);
+                updateAllCategoryButtons();
+                updateFooterStats();
+            }
+            return;
+        }
+
         // 4. Sub-aba: Ativar/Desativar todos os SAREs do projeto
         if (target.classList.contains('sublayer-toggle-all-sares')) {
             const propKey = target.dataset.propKey;
@@ -1845,6 +1930,23 @@ document.addEventListener('DOMContentLoaded', () => {
                         updateAllCategoryButtons();
                     }
                     const b = mataItem.layer.getBounds();
+                    if (b.isValid()) map.fitBounds(b, { padding: [50, 50], maxZoom: 16 });
+                }
+            } else if (zoomType === 'outras') {
+                const outrasKey = subZoomBtn.dataset.outrasKey;
+                const outrasItem = projectLayers[outrasKey];
+                if (outrasItem && outrasItem.layer) {
+                    if (!outrasItem.visible) {
+                        outrasItem.visible = true;
+                        if (!map.hasLayer(outrasItem.layer)) map.addLayer(outrasItem.layer);
+                        if (cardEl) {
+                            const chk = cardEl.querySelector(`.sublayer-toggle-outras[data-outras-key="${CSS.escape(outrasKey)}"]`);
+                            if (chk) chk.checked = true;
+                        }
+                        syncFlorestaPropertyParentState(propKey);
+                        updateAllCategoryButtons();
+                    }
+                    const b = outrasItem.layer.getBounds();
                     if (b.isValid()) map.fitBounds(b, { padding: [50, 50], maxZoom: 16 });
                 }
             } else if (zoomType === 'sare') {
@@ -2015,7 +2117,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 setFlorestaPropertyAllState(key, true);
                 return;
             }
-            if (item.categoria === 'floresta_mata_nativa') return;
+            if (item.categoria === 'floresta_mata_nativa' || item.categoria === 'floresta_outras') return;
             item.visible = true;
             if (!map.hasLayer(item.layer)) {
                 map.addLayer(item.layer);
@@ -2039,7 +2141,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 setFlorestaPropertyAllState(key, false);
                 return;
             }
-            if (item.categoria === 'floresta_mata_nativa') return;
+            if (item.categoria === 'floresta_mata_nativa' || item.categoria === 'floresta_outras') return;
             item.visible = false;
             if (map.hasLayer(item.layer)) {
                 map.removeLayer(item.layer);
@@ -2350,7 +2452,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const item = projectLayers[key];
             // Na aba de municípios, exibir apenas projetos reais (Restauração e Floresta Pronta - Matas Nativas).
             // Limites de propriedade e subcamadas averbadas não são duplicados como projetos separados.
-            if (!item || item.categoria === 'area_propriedade' || item.categoria === 'floresta_pronta' || item.isAverbada) return;
+            if (!item || item.categoria === 'area_propriedade' || item.categoria === 'floresta_pronta' || item.categoria === 'floresta_outras' || item.isAverbada) return;
 
             const muni = extractProjectMunicipality(item);
             if (!muni) return;
