@@ -1116,7 +1116,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (isFlorestaPronta) {
             const linkedKeys = item.linkedKeys || (item.linkedKey ? [item.linkedKey] : []);
-            const baseMataKeys = linkedKeys.filter(lk => projectLayers[lk] && !projectLayers[lk].isAverbada);
+            const baseMataKeys = linkedKeys.filter(lk => projectLayers[lk] && projectLayers[lk].categoria === 'floresta_mata_nativa' && !projectLayers[lk].isAverbada);
             const averbadaKeys = linkedKeys.filter(lk => projectLayers[lk] && projectLayers[lk].isAverbada);
 
             const primaryMataKey = baseMataKeys[0] || null;
